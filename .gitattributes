@@ -1,0 +1,13 @@
+# Normalise text files to LF line endings in the repository
+* text=auto eol=lf
+
+# Binary files: never touch line endings, never diff
+*.png    binary
+*.jpg    binary
+*.ico    binary
+*.woff2  binary
+*.zip    binary
+
+# Bundled third-party code: hide from language stats and collapse in diffs
+vendor/** linguist-vendored
+vendor/*.min.js -diff
