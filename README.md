@@ -76,7 +76,7 @@ js/richtext.js      formatting and math markup (shared with the Question Editor)
 js/wysiwyg.js       the visual fields: toolbar, math, pictures and tables
 js/paper.js         booklet, answer sheet and key for print and PDF
 js/docx.js          Word (.docx) export, with math as native Word equations
-js/samples.js       the six sample banks and sample exam
+js/samples.js       the six sample banks and sample exam (loaded on demand)
 js/app.js           the editor interface
 vendor/             KaTeX (math), served locally
 fonts/              Carlito subset (printed paper), IBM Plex and Inter fallback fonts, with licences

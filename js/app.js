@@ -142,12 +142,14 @@
   }
 
   /* ---------- steps ---------- */
-  function go(step) {
+  function go(step, opts) {
     ui.step = STEPS.includes(step) ? step : 'import';
     $$('.step').forEach(s => s.classList.toggle('active', s.dataset.panel === ui.step));
     renderStepper();
     ({ import: renderImport, blueprint: renderBlueprint, generate: renderGenerate, review: renderReview, export: renderExport })[ui.step]();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Not on the first render: the page is already at the top, and scrolling right after the DOM
+    // changes forces an extra layout while the page is loading.
+    if (!(opts && opts.initial)) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function renderStepper() {
     const done = {
@@ -264,9 +266,27 @@
     });
   }
 
+  /* The sample banks (js/samples.js, about 35 KB) are fetched only when someone asks for them,
+     so they stay off the first page load. A same-origin script is allowed by the page's CSP. */
+  let samplesLoading = null;
+  function ensureSamples() {
+    if (PT.SAMPLES) return Promise.resolve();
+    if (!samplesLoading) {
+      samplesLoading = new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'js/samples.js';
+        s.onload = () => res();
+        s.onerror = () => { samplesLoading = null; s.remove(); rej(new Error('The sample banks did not load.')); };
+        document.head.append(s);
+      });
+    }
+    return samplesLoading;
+  }
+
   async function loadSamples() {
     const names = ['sample-bank-sql-basics.zip', 'sample-bank-joins.zip', 'sample-bank-is-databases.zip', 'sample-bank-processes-bpmn.zip', 'sample-bank-systems-development.zip', 'sample-bank-mis-short-answer.zip'];
     try {
+      await ensureSamples();
       const files = names.map(n => {
         if (!PT.SAMPLES || !PT.SAMPLES[n]) throw new Error('The sample banks did not load.');
         return new File([PT.zip.b64ToBytes(PT.SAMPLES[n])], n);
@@ -1067,6 +1087,6 @@
   storeGet().then(saved => {
     if (saved && saved.app === 'paper-test-editor') project = normalizeProject(saved);
     $('#project-name').textContent = project.exam.title || 'Untitled exam';
-    go(project.forms.length ? 'review' : project.pools.length ? 'blueprint' : 'import');
+    go(project.forms.length ? 'review' : project.pools.length ? 'blueprint' : 'import', { initial: true });
   });
 })();

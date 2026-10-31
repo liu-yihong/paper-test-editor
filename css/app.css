@@ -97,7 +97,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .stepper button.active { background: var(--surface); border-color: var(--line); color: var(--ink); box-shadow: var(--shadow); }
 .stepper button.active span { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
 
-main { max-width: 1240px; margin: 0 auto; padding: 1rem 1.5rem 2rem; }
+main { max-width: 1240px; margin: 0 auto; padding: 1rem 1.5rem 2rem; min-height: 100vh; min-height: 100svh; }
+/* min-height keeps the footer below the first screen while the step panels are filled in by script,
+   so it doesn't jump down (layout shift) when they appear. */
 .step { display: none; }
 .step.active { display: block; animation: fade .18s ease-out; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
