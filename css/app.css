@@ -413,7 +413,7 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
 .wy-area code { font-family: var(--paper-mono); font-size: .92em; background: var(--line-2); border-radius: 3px; padding: 0 .2em; }
 .wy-area table { border-collapse: collapse; margin: .3rem 0; }
 .wy-area td, .wy-area th { border: 1px solid var(--muted); padding: .15rem .45rem; min-width: 2.5rem; }
-.wy-area th { background: var(--line-2); }
+.wy-area th { background: var(--line-2); text-align: left; } /* as printed: headings start left */
 .wy-area img { max-width: 100%; height: auto; vertical-align: middle; }
 .wy-display { display: block; text-align: center; margin: .2rem 0; padding: .2rem; }
 .wy-blank { display: inline-block; min-width: 3.2em; padding: 0 .45em; margin: 0 .1em; border-bottom: 1.5px solid var(--ink); background: var(--hl); border-radius: 3px 3px 0 0; font-size: .85em; color: var(--ink-2); text-align: center; cursor: pointer; }

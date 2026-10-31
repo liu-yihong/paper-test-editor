@@ -192,12 +192,14 @@
     return box.innerHTML;
   }
   const CELL_ALIGNS = ['left', 'center', 'right'];
-  /** Text alignment of one cell; left (the default) leaves no attribute. */
+  /**
+   * Text alignment of one cell. Left is set explicitly too: browsers centre <th> by
+   * default, so a left-aligned heading cell would otherwise show centred.
+   */
   function setCellAlign(c, a) {
     a = CELL_ALIGNS.includes(a) ? a : 'left';
-    if (a === 'left') { c.removeAttribute('data-align'); c.style.removeProperty('text-align'); }
-    else { c.setAttribute('data-align', a); c.style.textAlign = a; }
-    if (!c.getAttribute('style')) c.removeAttribute('style');
+    c.setAttribute('data-align', a);
+    c.style.textAlign = a;
   }
   /** A cell's text alignment: ours (data-align), or a pasted table's style or align attribute. */
   const cellAlign = (c) => {
