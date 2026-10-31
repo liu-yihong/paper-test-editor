@@ -6,7 +6,7 @@ Turn Blackboard question banks into **supervised paper versions** of an online e
 
 The paper version covers the same outcomes at the same difficulty and time limit. You can print several **parallel forms** at once, each drawing different questions from the same pools, so a leaked or remembered question gives little advantage.
 
-- **Live site:** <https://liu-yihong.github.io/paper-test-editor/>
+- **Live site:** <http://blog.yihong-liu.com/paper-test-editor/>
 - **Companion:** [Blackboard Question Editor](https://github.com/liu-yihong/blackboard-question-editor), which writes the question banks this editor reads
 - **Author:** Yihong Liu (the commander), [blog.yihong-liu.com](https://blog.yihong-liu.com/) & [Claude by Anthropic](https://claude.com/) (who did the dirty coding work)
 
