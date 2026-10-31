@@ -1,0 +1,20 @@
+# Operating system and editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node tools (only used to rebuild samples, never needed by the site)
+node_modules/
+
+# Exam material: keep real exams and student-facing exports out of a public repo.
+# Remove a line here only if you deliberately want such a file published.
+*.ptest.json
+*.bbq.json
+*.docx
+*.pdf
+exports/
+private/
