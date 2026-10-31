@@ -128,11 +128,11 @@ fieldset.checks label, label.check, label.radio { display: flex; gap: .5rem; ali
 .drop-icon { font-size: 1.8rem; color: var(--accent) !important; }
 .sample-line { color: var(--muted); font-size: .9rem; }
 .pool-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .8rem; margin-top: 1rem; }
-.pool-card { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: .85rem 1rem; display: grid; gap: .35rem; }
+.pool-card { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: .85rem 1rem; display: grid; gap: .35rem; align-content: start; }
 .pool-card header { display: flex; justify-content: space-between; gap: .5rem; align-items: start; }
 .pool-card b { font-family: var(--serif); font-size: 1.05rem; }
-.chips { display: flex; flex-wrap: wrap; gap: .25rem; }
-.chip { font-size: .75rem; padding: .08rem .45rem; border-radius: 999px; background: var(--line-2); color: var(--ink-2); white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; align-content: flex-start; }
+.chip { display: inline-flex; align-items: center; line-height: 1.4; font-size: .75rem; padding: .08rem .45rem; border-radius: 999px; background: var(--line-2); color: var(--ink-2); white-space: nowrap; }
 .chip.warn { background: var(--amber-soft); color: var(--amber); }
 .chip.ok { background: var(--green-soft); color: var(--green); }
 .chip.bad { background: var(--red-soft); color: var(--red); }

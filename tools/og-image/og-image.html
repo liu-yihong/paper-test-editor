@@ -1,0 +1,60 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:Plex;src:url(../../fonts/ibm-plex-sans-latin-400-normal.woff2);font-weight:400}
+@font-face{font-family:Plex;src:url(../../fonts/ibm-plex-sans-latin-600-normal.woff2);font-weight:600 700}
+@font-face{font-family:PlexMono;src:url(../../fonts/ibm-plex-mono-latin-400-normal.woff2)}
+@font-face{font-family:PaperSans;src:url(../../fonts/paper-sans-latin-regular.woff2);font-weight:400}
+@font-face{font-family:PaperSans;src:url(../../fonts/paper-sans-latin-bold.woff2);font-weight:700}
+*{box-sizing:border-box;margin:0}
+html,body{width:1200px;height:630px;overflow:hidden}
+body{background:#f4f1ea;color:#1f2a44;font-family:Plex;position:relative;border-left:12px solid #2f5d9a}
+.left{position:absolute;left:58px;top:58px;width:560px}
+.eyebrow{display:flex;align-items:center;gap:18px;font-family:PlexMono;color:#2f5d9a;font-size:21px;letter-spacing:.14em}
+.eyebrow svg{width:62px;height:62px;color:#1f2a44}
+h1{font-size:72px;line-height:1.02;font-weight:600;letter-spacing:-.015em;margin-top:30px}
+p.sub{font-size:25px;line-height:1.42;color:#4a5470;margin-top:24px}
+.chips{display:flex;gap:12px;margin-top:26px}
+.chips span{display:inline-flex;align-items:center;font-size:19px;padding:9px 18px;border:2px solid #d3cbbb;border-radius:999px;background:#fffdf8;color:#1f2a44}
+.url{font-family:PlexMono;color:#4a5470;font-size:19px;margin-top:28px}
+.stack{position:absolute;left:652px;top:0;width:548px;height:630px}
+.sheet{position:absolute;width:424px;height:478px;background:#fff;border:1px solid #ddd6c8;border-radius:6px;box-shadow:0 2px 12px rgba(31,42,68,.12);padding:20px 26px;font-family:PaperSans;overflow:hidden}
+.s3{left:104px;top:22px}.s2{left:52px;top:84px}.s1{left:0;top:146px}
+.s3,.s2{box-shadow:0 2px 8px rgba(31,42,68,.10)}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:2px solid #1f2a44;padding-bottom:9px}
+.hd small{display:block;font-size:13px;color:#4a5470}
+.hd b{display:block;font-size:19px;margin-top:1px}
+.hd .meta{margin-top:3px}
+.form{flex:none;display:flex;align-items:center;gap:8px;border:2.5px solid #1f2a44;border-radius:4px;padding:3px 11px;font-size:12px;color:#4a5470;letter-spacing:.08em}
+.form b{font-size:24px;color:#1f2a44;line-height:1;letter-spacing:0;margin:0}
+.lines{display:flex;gap:18px;margin-top:13px;font-size:13px;color:#4a5470}
+.lines div{flex:1;border-bottom:1.5px solid #7a8296;padding-bottom:3px}
+.q{margin-top:16px;font-size:16.5px;line-height:1.33}
+.q .n{font-weight:700;margin-right:4px}
+.q .pts{color:#7a8296;font-size:13px;white-space:nowrap}
+.opt{display:flex;align-items:center;gap:11px;margin-top:8px;font-size:16px}
+.opt i{flex:none;display:inline-grid;place-items:center;width:23px;height:23px;border:1.6px solid #1f2a44;border-radius:50%;font-style:normal;font-size:12px;font-weight:700}
+.opt .ot{margin-right:16px}
+.foot{position:absolute;left:26px;right:26px;bottom:14px;display:flex;justify-content:space-between;font-size:12px;color:#7a8296;border-top:1px solid #e9e3d6;padding-top:6px}
+.badge{position:absolute;left:-30px;bottom:50px;display:flex;align-items:center;gap:10px;background:#fffdf8;border:1.5px solid #ddd6c8;border-radius:12px;padding:12px 18px;box-shadow:0 6px 18px rgba(31,42,68,.14);font-size:18px;font-weight:600}
+.badge .ck{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#3f7d4e}
+.badge small{display:block;font-weight:400;font-size:14px;color:#4a5470}
+</style></head><body>
+<div class="left">
+  <div class="eyebrow"><svg viewBox="0 0 2268 2268" fill="currentColor"><path d="M118 2184Q100 2184 105 2164L187 1839L1248 84L1458 209L837 1241L499 1491L451 1640L520 1768L400 1967L140 2173Q125 2184 118 2184ZM786 2002Q741 2002 680.5 1968Q620 1934 564.5 1881.5Q509 1829 477 1772L563 1722Q586 1762 629 1804Q672 1846 716 1874Q760 1902 786 1902Q809 1902 820 1884Q831 1866 831 1840Q831 1818 823.5 1794.5Q816 1771 801 1751L918 1762Q924 1780 927 1798.5Q930 1817 930 1836Q930 1902 893 1952Q856 2002 786 2002ZM1086 1932Q1046 1932 1000.5 1906.5Q955 1881 877 1814Q828 1772 803 1754Q778 1736 761 1730L797 1636Q826 1648 865 1674.5Q904 1701 951 1744Q1001 1789 1035 1810.5Q1069 1832 1086 1832Q1106 1832 1119 1808Q1132 1784 1132 1754Q1132 1750 1132 1747Q1132 1744 1131 1740L1229 1726Q1230 1733 1230.5 1740.5Q1231 1748 1231 1756Q1231 1826 1189.5 1879Q1148 1932 1086 1932ZM335 1718Q244 1718 193.5 1664.5Q143 1611 159 1531L252 1076Q264 1017 316.5 960.5Q369 904 434 879L940 680L980 782L474 981Q434 997 400 1032Q366 1067 360 1098L267 1553Q262 1580 279 1594Q296 1608 335 1608ZM1552 1978Q1475 1978 1407 1956.5Q1339 1935 1275.5 1890.5Q1212 1846 1147 1776Q1091 1715 1054 1690Q1017 1665 982 1665Q957 1665 926.5 1678Q896 1691 846 1723Q765 1775 704 1797.5Q643 1820 583 1820Q495 1820 440 1770Q385 1720 385 1640Q385 1596 431 1539.5Q477 1483 541 1430L779 1233Q822 1198 869.5 1183Q917 1168 980 1168H1249V1278H980Q934 1278 906 1287.5Q878 1297 849 1320L611 1513Q568 1548 531.5 1590.5Q495 1633 495 1640Q495 1673 517.5 1691.5Q540 1710 583 1710Q623 1710 664.5 1693.5Q706 1677 771 1636Q840 1592 889.5 1573.5Q939 1555 982 1555Q1044 1555 1096.5 1585Q1149 1615 1210 1683Q1299 1783 1377.5 1825.5Q1456 1868 1552 1868Q1607 1868 1664.5 1853.5Q1722 1839 1782 1839Q1830 1839 1875.5 1846Q1921 1853 1955 1853Q1993 1853 2023.5 1771.5Q2054 1690 2054 1566Q2054 1483 2039 1415Q2024 1347 2001.5 1307Q1979 1267 1955 1267H1862L1011 851L1059 753L1888 1157H1955Q2050 1157 2107 1272Q2164 1387 2164 1566Q2164 1742 2107.5 1852.5Q2051 1963 1955 1963Q1903 1963 1865.5 1956Q1828 1949 1782 1949Q1732 1949 1677.5 1963.5Q1623 1978 1552 1978Z"/></svg>PAPER MAKE-UP EXAMS</div>
+  <h1>Paper Test<br>Editor</h1>
+  <p class="sub">Turn Blackboard question banks into parallel paper forms, with answer sheets and keys. Free, and it all stays in your browser.</p>
+  <div class="chips"><span>Parallel forms</span><span>Answer sheets &amp; keys</span><span>PDF &amp; Word</span></div>
+  <div class="url">blog.yihong-liu.com/paper-test-editor</div>
+</div>
+<div class="stack"><div class="sheet s3">
+    <div class="hd"><div><small>MGMT 2080 · Introduction to IS</small><b>Midterm Exam (Make-up)</b><small class="meta">75 minutes · 27 questions · 60 points</small></div><div class="form"><span>FORM</span><b>C</b></div></div>
+    <div class="lines"><div>Name</div><div>Student ID</div></div><div class="q"><span class="n">3.</span>Which IS component runs the procedures? <span class="pts">(2 pts)</span></div><div class="opt"><i>A</i>People</div><div class="opt"><i>B</i>Network</div><div class="opt"><i>C</i>Cloud</div><div class="opt"><i>D</i>Firewall</div>
+    <div class="foot"><span>Form C</span><span>Page 1 of 4</span></div></div><div class="sheet s2">
+    <div class="hd"><div><small>MGMT 2080 · Introduction to IS</small><b>Midterm Exam (Make-up)</b><small class="meta">75 minutes · 27 questions · 60 points</small></div><div class="form"><span>FORM</span><b>B</b></div></div>
+    <div class="lines"><div>Name</div><div>Student ID</div></div><div class="q"><span class="n">3.</span>Which method finishes each phase first? <span class="pts">(2 pts)</span></div><div class="opt"><i>A</i>Agile</div><div class="opt"><i>B</i>Scrum</div><div class="opt"><i>C</i>Waterfall</div><div class="opt"><i>D</i>Prototyping</div>
+    <div class="foot"><span>Form B</span><span>Page 1 of 4</span></div></div><div class="sheet s1">
+    <div class="hd"><div><small>MGMT 2080 · Introduction to IS</small><b>Midterm Exam (Make-up)</b><small class="meta">75 minutes · 27 questions · 60 points</small></div><div class="form"><span>FORM</span><b>A</b></div></div>
+    <div class="lines"><div>Name</div><div>Student ID</div></div><div class="q"><span class="n">3.</span>In BPMN, which shape shows an activity? <span class="pts">(2 pts)</span></div><div class="opt"><i>A</i>Circle</div><div class="opt"><i>B</i>Rounded rectangle</div><div class="opt"><i>C</i>Diamond</div><div class="opt"><i>D</i>None of the above</div><div class="q"><span class="n">4.</span>A data warehouse supports decision making. <span class="pts">(2 pts)</span></div><div class="opt"><i>T</i><span class="ot">True</span><i>F</i><span class="ot">False</span></div>
+    <div class="foot"><span>Form A</span><span>Page 1 of 4</span></div></div>
+  <div class="badge"><span class="ck"><svg width="16" height="16" viewBox="0 0 12 12"><path d="M2.6 6.3l2.3 2.3 4.6-5" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div>0 shared questions<small>across forms A, B and C</small></div></div>
+</div>
+</body></html>

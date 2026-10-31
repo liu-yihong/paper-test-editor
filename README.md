@@ -6,7 +6,7 @@ Turn Blackboard question banks into **supervised paper versions** of an online e
 
 The paper version covers the same outcomes at the same difficulty and time limit. You can print several **parallel forms** at once, each drawing different questions from the same pools, so a leaked or remembered question gives little advantage.
 
-- **Live site:** <http://blog.yihong-liu.com/paper-test-editor/>
+- **Live site:** <https://blog.yihong-liu.com/paper-test-editor/>
 - **Companion:** [Blackboard Question Editor](https://github.com/liu-yihong/blackboard-question-editor), which writes the question banks this editor reads
 - **Author:** Yihong Liu (the commander), [blog.yihong-liu.com](https://blog.yihong-liu.com/) & [Claude by Anthropic](https://claude.com/) (who did the dirty coding work)
 
@@ -64,7 +64,9 @@ index.html          page markup and Content Security Policy
 favicon.svg         logo and browser-tab icon (Noto Emoji writing hand), with PNG fallbacks
 favicon-32.png
 apple-touch-icon.png
+og-image.png        link-preview image (Open Graph / X card), 2400 × 1260
 css/app.css         all styling: the nine styles and the printed page
+tools/og-image/     the HTML the preview image is drawn from
 js/theme.js         applies the saved style and Day/Night choice before the page paints
 js/model.js         question types, pools and the exam blueprint
 js/bbimport.js      reading Blackboard question bank .zip files and .bbq.json projects
