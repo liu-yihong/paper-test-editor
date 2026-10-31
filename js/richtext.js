@@ -127,6 +127,21 @@
   function tableCells(line) {
     return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
   }
+  /**
+   * Text alignment per column, from a rule row such as |:---|:---:|---:|
+   * (:--- or --- left, :---: center, ---: right). Under the first row the rule row also
+   * makes that row headings; as the table's first line it only sets alignment.
+   * (Same markup as the Blackboard Question Editor.)
+   */
+  function tableAligns(line) {
+    return tableCells(line).map(c => (/^:-+:$/.test(c) ? 'center' : /^-+:$/.test(c) ? 'right' : 'left'));
+  }
+  /** Where a table's rule row is: 1 (heading row), 0 (alignment only) or -1 (none). */
+  function tableRuleAt(rows) {
+    if (rows.length > 1 && TABLE_RULE.test(rows[1]) && !TABLE_RULE.test(rows[0])) return 1;
+    if (rows.length > 1 && TABLE_RULE.test(rows[0])) return 0;
+    return -1;
+  }
   /** Replace runs of |-delimited lines with table markup (tags are emitted as tokens). */
   function pipeTables(s, put, html) {
     const lines = s.split('\n');
@@ -136,17 +151,19 @@
       let j = i;
       while (j < lines.length && TABLE_LINE.test(lines[j])) j++;
       const rows = lines.slice(i, j);
-      const hasHead = rows.length > 1 && TABLE_RULE.test(rows[1]);
-      const body = rows.filter((r, k) => !(hasHead && k === 1)).map(tableCells);
+      const ruleAt = tableRuleAt(rows);
+      const hasHead = ruleAt === 1;
+      const aligns = ruleAt >= 0 ? tableAligns(rows[ruleAt]) : [];
+      const body = rows.filter((r, k) => k !== ruleAt).map(tableCells);
       let align = 'left';
       const am = out.length ? TABLE_ALIGN_LINE.exec(out[out.length - 1]) : null;
       if (am) { align = am[1].toLowerCase(); out.pop(); }
       if (!html) {
         out.push(body.map(r => r.join(' | ')).join('\n'));
       } else {
-        const cell = (tag, c) => put('<' + tag + ' style="border:1px solid #999;padding:4px 8px;text-align:left">') + (c.trim() ? c : put('&nbsp;')) + put('</' + tag + '>');
+        const cell = (tag, c, col) => put('<' + tag + ' style="border:1px solid #999;padding:4px 8px;text-align:' + (aligns[col] || 'left') + '">') + (c.trim() ? c : put('&nbsp;')) + put('</' + tag + '>');
         out.push(put('<table border="1" cellpadding="4" style="border-collapse:collapse' + TABLE_MARGIN[align] + '">') +
-          body.map((r, k) => put('<tr>') + r.map(c => cell(hasHead && k === 0 ? 'th' : 'td', c)).join('') + put('</tr>')).join('') +
+          body.map((r, k) => put('<tr>') + r.map((c, col) => cell(hasHead && k === 0 ? 'th' : 'td', c, col)).join('') + put('</tr>')).join('') +
           put('</table>'));
       }
       i = j - 1;
@@ -413,5 +430,5 @@
     return t.length > max ? t.slice(0, max - 1) + '…' : t;
   }
 
-  BQ.rt = { toHtml, toPlain, htmlToMarkup, texToUnicode, summary, escapeHtml, decodeEntities, imagesIn, isLocalImage, ESCAPABLE };
+  BQ.rt = { tableAligns, tableRuleAt, toHtml, toPlain, htmlToMarkup, texToUnicode, summary, escapeHtml, decodeEntities, imagesIn, isLocalImage, ESCAPABLE };
 })();

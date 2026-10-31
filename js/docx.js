@@ -281,7 +281,9 @@
       Array.from({ length: ncols }, () => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>' +
       rows.map(r => '<w:tr><w:trPr><w:cantSplit/></w:trPr>' + Array.from(r.childNodes).filter(c => isEl(c) && /^t[dh]$/.test(lname(c))).map(c => {
         const span = parseInt(c.getAttribute('colspan'), 10) || 1;
-        const inner = self.blocksXml(self.rich(c.innerHTML, { st: Object.assign({}, st, lname(c) === 'th' ? { b: true } : {}), p: { after: 0, keepNext: true } }));
+        // text alignment in the cell (from the markup's |:---:|---:| rule row)
+        const ta = /text-align:\s*(center|right)/i.exec(c.getAttribute('style') || '');
+        const inner = self.blocksXml(self.rich(c.innerHTML, { st: Object.assign({}, st, lname(c) === 'th' ? { b: true } : {}), p: Object.assign({ after: 0, keepNext: true }, ta ? { align: ta[1].toLowerCase() } : {}) }));
         return '<w:tc><w:tcPr><w:tcW w:w="' + w * span + '" w:type="dxa"/>' + (span > 1 ? '<w:gridSpan w:val="' + span + '"/>' : '') + (lname(c) === 'th' ? '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/>' : '') + '</w:tcPr>' + inner + '</w:tc>';
       }).join('') + '</w:tr>').join('') + '</w:tbl>';
   };

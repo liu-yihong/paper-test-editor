@@ -6,7 +6,9 @@
  *   formatting  → a few safe HTML tags (<strong>, <em>, <u>, <sup>, <sub>, lists)
  *   code        → `code`
  *   math        → $LaTeX$  (or $$LaTeX$$ for display math)
- *   tables      → | a | b | rows, with {table align=center} above when aligned
+ *   tables      → | a | b | rows, with {table align=center} above when aligned; a rule
+ *                 row |:---|:---:|---:| sets each column's text alignment (as in the
+ *                 Blackboard Question Editor)
  *   pictures    → <img src="name.png" alt="…" width="…" align="…">, stored in the project
  *   blanks      → [name]   (fill in multiple blanks, with opts.blanks)
  *
@@ -171,7 +173,7 @@
       const align = /margin-left:auto;margin-right:auto/.test(st) ? 'center' : /margin-left:auto;margin-right:0/.test(st) ? 'right' : 'left';
       setTableAlign(t, align);
       t.removeAttribute('border'); t.removeAttribute('cellpadding');
-      t.querySelectorAll('td, th').forEach(c => { c.removeAttribute('style'); if (c.textContent.replace(/ /g, '').trim() === '' && !c.querySelector('img, .wy-math')) c.innerHTML = '<br>'; });
+      t.querySelectorAll('td, th').forEach(c => { const ta = /text-align:\s*(center|right)/i.exec(c.getAttribute('style') || ''); c.removeAttribute('style'); setCellAlign(c, ta ? ta[1].toLowerCase() : 'left'); if (c.textContent.replace(/ /g, '').trim() === '' && !c.querySelector('img, .wy-math')) c.innerHTML = '<br>'; });
     });
     // a caret stop after code (or a table) that ends a line, so typing there isn't stuck inside it
     box.querySelectorAll('code').forEach(c => { if (!c.nextSibling || (c.nextSibling.nodeType === 1 && c.nextSibling.localName === 'br')) c.after(document.createTextNode('​')); });
@@ -189,6 +191,20 @@
     }
     return box.innerHTML;
   }
+  const CELL_ALIGNS = ['left', 'center', 'right'];
+  /** Text alignment of one cell; left (the default) leaves no attribute. */
+  function setCellAlign(c, a) {
+    a = CELL_ALIGNS.includes(a) ? a : 'left';
+    if (a === 'left') { c.removeAttribute('data-align'); c.style.removeProperty('text-align'); }
+    else { c.setAttribute('data-align', a); c.style.textAlign = a; }
+    if (!c.getAttribute('style')) c.removeAttribute('style');
+  }
+  /** A cell's text alignment: ours (data-align), or a pasted table's style or align attribute. */
+  const cellAlign = (c) => {
+    if (!c) return 'left';
+    const a = (c.getAttribute('data-align') || (c.style && c.style.textAlign) || c.getAttribute('align') || '').toLowerCase();
+    return a === 'center' || a === 'right' ? a : 'left';
+  };
   function setTableAlign(t, align) {
     t.setAttribute('data-align', align);
     t.setAttribute('style', TABLE_ALIGN[align] || '');
@@ -234,10 +250,24 @@
         const align = n.getAttribute('data-align');
         if (align === 'center' || align === 'right') out += '{table align=' + align + '}\n';
         const rows = Array.from(n.querySelectorAll('tr'));
+        const cellsOf = (r) => Array.from(r.children).filter(c => /^t[dh]$/.test(c.localName));
+        const head = rows.length && cellsOf(rows[0]).some(c => c.localName === 'th');
+        // text alignment per column, stored once per column as in the Question Editor; taken from
+        // the first body cell (a pasted table often centres only its headings)
+        const ncols = Math.max(0, ...rows.map(r => cellsOf(r).length));
+        const aligns = Array.from({ length: ncols }, (_, k) => {
+          const col = rows.map(r => cellsOf(r)[k]).filter(Boolean);
+          const body = col.slice(head ? 1 : 0);
+          return cellAlign((body.length ? body : col)[0]);
+        });
+        const aligned = aligns.some(a => a !== 'left');
+        const rule = '|' + aligns.map(a => (a === 'center' ? ':---:' : a === 'right' ? '---:' : '---')).join('|') + '|\n';
+        // without headings, a rule row as the table's first line only sets alignment
+        if (aligned && !head) out += rule;
         rows.forEach((r, i) => {
-          const cells = Array.from(r.children).filter(c => /^t[dh]$/.test(c.localName));
+          const cells = cellsOf(r);
           out += '| ' + cells.map(c => sub(c).replace(/\n+/g, ' ').trim() || ' ').join(' | ') + ' |\n';
-          if (i === 0 && cells.some(c => c.localName === 'th')) out += '|' + cells.map(() => '---').join('|') + '|\n';
+          if (i === 0 && head) out += rule;
         });
         return;
       }
@@ -608,7 +638,7 @@
       let focus = cell;
       if (op === 'rowAbove' || op === 'rowBelow') {
         const nr = el('tr');
-        Array.from(tr.children).forEach(() => nr.append(newCell('td')));
+        Array.from(tr.children).forEach(c => { const nc = newCell('td'); setCellAlign(nc, cellAlign(c)); nr.append(nc); });
         if (op === 'rowAbove' && !(hasHead && ri === 0)) tr.before(nr); else tr.after(nr);
         focus = nr.children[ci] || nr.firstChild;
       } else if (op === 'colLeft' || op === 'colRight') {
@@ -634,6 +664,9 @@
         removeTable(table); return;
       } else if (/^align-/.test(op)) {
         setTableAlign(table, op.slice(6));
+      } else if (/^text-/.test(op)) {
+        // text alignment applies to the whole column, as the markup stores it per column
+        rows.forEach(r => { if (r.children[ci]) setCellAlign(r.children[ci], op.slice(5)); });
       }
       if (focus && focus.isConnected) {
         const s = getSelection(); const r = document.createRange(); r.selectNodeContents(focus); r.collapse(true); s.removeAllRanges(); s.addRange(r);
@@ -646,6 +679,7 @@
       const n = el(tag);
       while (c.firstChild) n.append(c.firstChild);
       if (c.getAttribute('colspan')) n.setAttribute('colspan', c.getAttribute('colspan'));
+      setCellAlign(n, cellAlign(c));
       c.replaceWith(n);
     }
     function removeTable(table) {
@@ -656,6 +690,19 @@
       syncTable();
     }
     const tbtn = (label, title, op) => el('button', { type: 'button', class: 'wy-btn wy-tb', title, 'aria-label': title, html: label, onmousedown: (e) => e.preventDefault(), onclick: () => tableOp(op) });
+    /* text alignment of the current cell's column; three lines of different lengths show the alignment */
+    const ALIGN_ICON = {
+      left: '<rect x="1" y="2" width="12" height="1.6"/><rect x="1" y="6.2" width="8" height="1.6"/><rect x="1" y="10.4" width="10" height="1.6"/>',
+      center: '<rect x="1" y="2" width="12" height="1.6"/><rect x="3" y="6.2" width="8" height="1.6"/><rect x="2" y="10.4" width="10" height="1.6"/>',
+      right: '<rect x="1" y="2" width="12" height="1.6"/><rect x="5" y="6.2" width="8" height="1.6"/><rect x="3" y="10.4" width="10" height="1.6"/>'
+    };
+    const textBtns = CELL_ALIGNS.map(a => {
+      const b = tbtn('<svg class="wy-aico" viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" fill="currentColor">' + ALIGN_ICON[a] + '</svg>',
+        'Align the text in this column ' + a, 'text-' + a);
+      b.setAttribute('aria-pressed', 'false');
+      b.dataset.textAlign = a;
+      return b;
+    });
     const tbar = el('div', { class: 'wy-tbar', hidden: true, role: 'toolbar', 'aria-label': 'Table' },
       el('span', { class: 'wy-tlabel' }, 'Table'),
       tbtn('+ Row above', 'Add a row above', 'rowAbove'), tbtn('+ Row below', 'Add a row below', 'rowBelow'), tbtn('− Row', 'Delete this row', 'delRow'),
@@ -663,6 +710,10 @@
       tbtn('+ Col left', 'Add a column to the left', 'colLeft'), tbtn('+ Col right', 'Add a column to the right', 'colRight'), tbtn('− Col', 'Delete this column', 'delCol'),
       el('span', { class: 'wy-sep' }),
       tbtn('Heading row', 'Make the first row headings (or plain cells)', 'head'),
+      el('span', { class: 'wy-sep' }),
+      el('span', { class: 'wy-tlabel' }, 'Text'),
+      el('span', { class: 'wy-tgroup', role: 'group', 'aria-label': 'Text alignment in this column' }, textBtns),
+      el('span', { class: 'wy-sep' }),
       tbtn('⇤', 'Align the table left', 'align-left'), tbtn('⇔', 'Center the table', 'align-center'), tbtn('⇥', 'Align the table right', 'align-right'),
       el('span', { class: 'wy-sep' }),
       tbtn('Delete table', 'Delete the whole table', 'deleteTable'));
@@ -671,6 +722,8 @@
       if (c) curCell = c;
       else if (document.activeElement === area) curCell = null;
       tbar.hidden = !curCell || !curCell.isConnected;
+      const cur = curCell && curCell.isConnected ? cellAlign(curCell) : 'left';
+      textBtns.forEach(b => { const on = b.dataset.textAlign === cur; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.classList.toggle('on', on); });
       area.querySelectorAll('table.wy-cur').forEach(t => t.classList.remove('wy-cur'));
       if (curCell && curCell.isConnected) curCell.closest('table').classList.add('wy-cur');
     }
