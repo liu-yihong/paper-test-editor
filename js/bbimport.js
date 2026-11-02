@@ -140,6 +140,37 @@
     return scoring;
   }
 
+  /**
+   * Blackboard Ultra: when choices are edited after a question is made, the choices get new ids
+   * ("new_…" or bare GUIDs) but the answer key keeps the old ids, in the same order as the choices.
+   * Read the old ids in order from the key and mark the choices by position.
+   */
+  function flagsByPosition(item, correct, n, right) {
+    const lists = [];
+    correct.forEach(c => {
+      const and = first(c, 'and');
+      if (and) lists.push(kids(and).map(e => tag(e) === 'not' ? first(e, 'varequal') : e)
+        .filter(e => e && tag(e) === 'varequal').map(v => text(v).trim()));
+    });
+    // per-choice rows: <respcondition><varequal respident="OLD_ID"/></respcondition>
+    lists.push(all(item, 'respcondition').filter(c => !c.getAttribute('title'))
+      .map(c => first(c, 'varequal')).filter(v => v && !text(v).trim() && v.getAttribute('respident') !== 'response')
+      .map(v => v.getAttribute('respident')));
+    const ids = lists.find(l => l.length === n && new Set(l).size === n && l.some(id => right.has(id)));
+    return ids ? ids.map(id => right.has(id)) : null;
+  }
+
+  /** Either/Or choices are stored as keys such as "true_false.true" or "yes_no.no". */
+  const EITHER_OR = { true: 'True', false: 'False', yes: 'Yes', no: 'No', agree: 'Agree', disagree: 'Disagree', right: 'Right', wrong: 'Wrong' };
+  function optionText(label, bbType, rich) {
+    const ident = label.getAttribute('ident') || '';
+    const t = rich(materialHtml(label));
+    if (bbType !== 'either/or') return t;
+    const key = /^[a-z]+_[a-z]+\.([a-z]+)$/.exec((t || ident).trim()) || /^[a-z]+_[a-z]+\.([a-z]+)$/.exec(ident);
+    if (key && EITHER_OR[key[1]] && (!t || t.trim() === ident || /^[a-z]+_[a-z]+\.[a-z]+$/.test(t.trim()))) return EITHER_OR[key[1]];
+    return t || ident;
+  }
+
   function parseItem(item, pics) {
     const meta = first(item, 'itemmetadata');
     const bbType = text(first(meta, 'bbmd_questiontype')).trim().toLowerCase();
@@ -169,8 +200,13 @@
           const notParent = v.parentNode && tag(v.parentNode) === 'not';
           if (!notParent) right.add(text(v).trim());
         }));
-        q.options = labels.map(l => ({ text: rich(materialHtml(l)), correct: right.has(l.getAttribute('ident')) }));
-        if (bbType === 'either/or' && !q.options.some(o => o.text)) q.options = labels.map(l => ({ text: l.getAttribute('ident'), correct: right.has(l.getAttribute('ident')) }));
+        let flags = labels.map(l => right.has(l.getAttribute('ident')));
+        if (!flags.some(Boolean) && right.size) flags = flagsByPosition(item, correct, labels.length, right) || flags;
+        q.options = labels.map((l, i) => ({ text: optionText(l, bbType, rich), correct: flags[i] }));
+        // Blackboard Ultra exports single-answer multiple choice as "Multiple Answer", flagged
+        // single_correct_answer. Keep it multiple choice, as students see it in Blackboard.
+        const single = all(item, 'setvar').some(s => s.getAttribute('variablename') === 'single_correct_answer' && text(s).trim() === 'true');
+        if (q.type === 'MA' && single && flags.filter(Boolean).length === 1) q.type = 'MC';
         break;
       }
       case 'TF': {
@@ -189,15 +225,25 @@
         const rights = rightBlock ? kids(rightBlock).map(f => rich(materialHtml(f))) : [];
         const lefts = rb ? kids(rb).filter(f => tag(f) === 'flow') : [];
         const answerFor = new Map();
-        all(item, 'respcondition').forEach(c => all(c, 'varequal').forEach(v => {
-          if (!answerFor.has(v.getAttribute('respident'))) answerFor.set(v.getAttribute('respident'), text(v).trim());
-        }));
+        const answers = [];
+        all(item, 'respcondition').forEach(c => {
+          if ((c.getAttribute('title') || '').toLowerCase() === 'incorrect') return;
+          all(c, 'varequal').forEach(v => {
+            const a = text(v).trim();
+            if (!a) return;
+            answers.push(a);
+            if (!answerFor.has(v.getAttribute('respident'))) answerFor.set(v.getAttribute('respident'), a);
+          });
+        });
         const usedRight = new Set();
         lefts.forEach(f => {
           const lid = first(f, 'response_lid');
           const ident = lid ? lid.getAttribute('ident') : '';
           const labs = all(lid, 'response_label').map(l => l.getAttribute('ident'));
-          const idx = labs.indexOf(answerFor.get(ident));
+          let idx = labs.indexOf(answerFor.get(ident));
+          // Blackboard Ultra can export prompt ids in the answer key that differ from the prompts'
+          // own ids. The answer itself is still one of this prompt's label ids, which are unique.
+          if (idx < 0) idx = labs.findIndex(id => answers.includes(id));
           const leftText = rich(materialHtml(child(f, 'flow') || f));
           q.pairs.push({ left: leftText, right: idx >= 0 && rights[idx] != null ? rights[idx] : '' });
           if (idx >= 0) usedRight.add(idx);
