@@ -28,6 +28,17 @@
   --dash: #cfc7b6;
   --warn-ink: #6d4708; --bad-ink: #7b2b1b; --ok-ink: #23502e;
   --shadow: 0 1px 3px rgba(31,42,68,.08);
+  /* Roles. Components colour themselves through these, never through the raw palette above,
+     so a style restyles a role in one place. The defaults are built from the palette, and
+     var() resolves after the cascade, so each style's own palette (and its Night look) flows
+     in without restating them. Only styles whose look differs (the retro ones) override them.
+     --tint is a fill behind body text (code, chips, table headings): keep it apart from
+     --line-2, which is a border colour and may be black. */
+  --tint: var(--line-2);
+  --ok-bg: var(--green-soft);  --ok-fg: var(--ok-ink);     --ok-line: 1px solid transparent;
+  --warn-bg: var(--amber-soft); --warn-fg: var(--warn-ink); --warn-line: 1px solid transparent;
+  --bad-bg: var(--red-soft);   --bad-fg: var(--bad-ink);   --bad-line: 1px solid transparent;
+  --pick-bg: var(--green-soft); --pick-fg: var(--green);   /* the correct answer's letter, the chosen True/False */
   color-scheme: light;
   /* Fonts: the device's own fonts first. The fonts in fonts/ are downloaded only on a
      device that has none of the fonts listed before them (the browser fetches a web
@@ -134,10 +145,10 @@ fieldset.checks label, label.check, label.radio { display: flex; gap: .5rem; ali
 .pool-card header { display: flex; justify-content: space-between; gap: .5rem; align-items: start; }
 .pool-card b { font-family: var(--serif); font-size: 1.05rem; }
 .chips { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; align-content: flex-start; }
-.chip { display: inline-flex; align-items: center; line-height: 1.4; font-size: .75rem; padding: .08rem .45rem; border-radius: 999px; background: var(--line-2); color: var(--ink-2); white-space: nowrap; }
-.chip.warn { background: var(--amber-soft); color: var(--amber); }
-.chip.ok { background: var(--green-soft); color: var(--green); }
-.chip.bad { background: var(--red-soft); color: var(--red); }
+.chip { display: inline-flex; align-items: center; line-height: 1.4; font-size: .75rem; padding: .08rem .45rem; border-radius: 999px; background: var(--tint); color: var(--ink-2); white-space: nowrap; }
+.chip.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.chip.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.chip.bad { background: var(--bad-bg); color: var(--bad-fg); }
 
 /* ---------- blueprint ---------- */
 .table-wrap { overflow-x: auto; }
@@ -153,10 +164,15 @@ table.slots { width: 100%; border-collapse: collapse; }
 .slots .sub { font-size: .8rem; color: var(--muted); }
 /* "of N" sits beside the Draw input, so every control in the row centres on one line */
 .slots .draw-cell { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; }
-.notice { border-radius: 8px; padding: .55rem .8rem; margin-top: .6rem; font-size: .9rem; }
-.notice.warn { background: var(--amber-soft); color: var(--warn-ink); }
-.notice.bad { background: var(--red-soft); color: var(--bad-ink); }
-.notice.ok { background: var(--green-soft); color: var(--ok-ink); }
+.notice { border-radius: 8px; padding: .55rem .8rem; margin-top: .6rem; font-size: .9rem; display: flex; gap: .55rem; align-items: baseline; }
+/* a symbol first, so the kind of notice never depends on colour alone (and works in 1-bit styles) */
+.notice::before { flex: none; width: 1.1em; text-align: center; font-weight: 700; }
+.notice.warn { background: var(--warn-bg); color: var(--warn-fg); border: var(--warn-line); }
+.notice.warn::before { content: "!"; }
+.notice.bad { background: var(--bad-bg); color: var(--bad-fg); border: var(--bad-line); }
+.notice.bad::before { content: "\2715"; }
+.notice.ok { background: var(--ok-bg); color: var(--ok-fg); border: var(--ok-line); }
+.notice.ok::before { content: "\2713"; }
 .qbrowse { margin-top: .4rem; max-height: 360px; overflow: auto; border: 1px solid var(--line-2); border-radius: 8px; }
 .qbrowse div { display: flex; gap: .6rem; align-items: center; padding: .35rem .6rem; border-bottom: 1px solid var(--line-2); font-size: .88rem; }
 .qbrowse div:last-child { border-bottom: 0; }
@@ -169,10 +185,10 @@ table.slots { width: 100%; border-collapse: collapse; }
 #gen-status { color: var(--ink-2); }
 .overlap { border-collapse: collapse; margin: .4rem 0 .6rem; }
 .overlap th, .overlap td { padding: .35rem .7rem; text-align: center; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-.overlap th { background: var(--line-2); font-family: var(--serif); }
+.overlap th { background: var(--tint); font-family: var(--serif); }
 .overlap td.self { color: var(--muted); background: var(--surface-2); }
-.overlap td.zero { color: var(--green); font-weight: 600; }
-.overlap td.some { background: var(--amber-soft); color: var(--amber); font-weight: 600; }
+.overlap td.zero { color: var(--ok-fg); font-weight: 600; }
+.overlap td.some { background: var(--warn-bg); color: var(--warn-fg); font-weight: 600; }
 .pool-notes { display: grid; gap: .25rem; font-size: .9rem; }
 .history summary { cursor: pointer; display: flex; align-items: baseline; gap: .6rem; list-style: none; }
 .history summary h3 { margin: 0; }
@@ -417,10 +433,10 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
 /* show where the cover page ends in the on-screen preview */
 .paper-stage .pp-break { height: 0; border-top: 2px dashed #b9b2a2; margin: 2.2em -.75in 2em; position: relative; }
 .paper-stage .pp-break::after { content: 'page break'; position: absolute; left: 50%; top: -.75em; transform: translateX(-50%); background: #fff; padding: 0 .6em; font: .75rem var(--sans); color: #8a8270; }
-.wy-area code { font-family: var(--paper-mono); font-size: .92em; background: var(--line-2); border-radius: 3px; padding: 0 .2em; }
+.wy-area code { font-family: var(--paper-mono); font-size: .92em; background: var(--tint); color: var(--field-ink); border-radius: 3px; padding: 0 .2em; }
 .wy-area table { border-collapse: collapse; margin: .3rem 0; }
 .wy-area td, .wy-area th { border: 1px solid var(--muted); padding: .15rem .45rem; min-width: 2.5rem; }
-.wy-area th { background: var(--line-2); text-align: left; } /* as printed: headings start left */
+.wy-area th { background: var(--tint); text-align: left; } /* as printed: headings start left */
 .wy-area img { max-width: 100%; height: auto; vertical-align: middle; }
 .wy-display { display: block; text-align: center; margin: .2rem 0; padding: .2rem; }
 .wy-blank { display: inline-block; min-width: 3.2em; padding: 0 .45em; margin: 0 .1em; border-bottom: 1.5px solid var(--ink); background: var(--hl); border-radius: 3px 3px 0 0; font-size: .85em; color: var(--ink-2); text-align: center; cursor: pointer; }
@@ -461,7 +477,7 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
 .ed-mark, .ed-lab { height: 2.4rem; display: grid; place-items: center; }
 .ed-mark input { margin: 0; width: 1.05rem; height: 1.05rem; accent-color: var(--green); cursor: pointer; }
 .ed-lab { font-family: var(--serif); font-weight: 700; color: var(--ink-2); border-radius: 6px; }
-.ed-lab.ok { background: var(--green-soft); color: var(--green); }
+.ed-lab.ok { background: var(--pick-bg); color: var(--pick-fg); }
 .ed-muted { color: var(--muted); font-family: var(--sans); font-weight: 400; }
 .ed-bname { font-family: var(--mono); font-size: .85rem; background: var(--hl); border-bottom: 1.5px solid var(--ink); padding: .1rem .45rem; border-radius: 3px 3px 0 0; }
 .ed-blanks input { margin: 0 !important; }
@@ -477,7 +493,7 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
 .ed-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .ed-seg button { border: 0; border-radius: 0; padding: .45rem 1.3rem; background: var(--field); }
 .ed-seg button + button { border-left: 1px solid var(--line); }
-.ed-seg button.on { background: var(--green-soft); color: var(--green); font-weight: 600; }
+.ed-seg button.on { background: var(--pick-bg); color: var(--pick-fg); font-weight: 600; }
 .ed-inline { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; max-width: 24rem; }
 .ed-meta { display: flex; flex-wrap: wrap; gap: 1.4rem; margin-top: 1.3rem; padding-top: .9rem; border-top: 1px dashed var(--line); }
 .ed-meta label { display: flex; align-items: center; gap: .5rem; color: var(--ink); }
@@ -577,6 +593,16 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
   --sans: "Geneva", "Chicago", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --serif: "Chicago", "Charcoal", "Geneva", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+/* 1-bit: no hues. Status is told by the symbol and the frame (solid = ok, dashed = check, double = problem);
+   the chosen answer is inverted, like the current step and pressed buttons. */
+:root[data-skin="system"] {
+  --red: #000; --red-soft: #fff; --green: #000; --green-soft: #fff; --amber: #000; --amber-soft: #fff; --tint: #e4e4e4;
+  --ok-bg: #fff; --ok-fg: #000; --ok-line: 1px solid #000;
+  --warn-bg: #fff; --warn-fg: #000; --warn-line: 1px dashed #000;
+  --bad-bg: #fff; --bad-fg: #000; --bad-line: 3px double #000;
+  --pick-bg: #000; --pick-fg: #fff;
+}
+[data-skin="system"] .ed-x:hover { background: #000; color: #fff; }
 [data-skin="system"] body { background: radial-gradient(#a8a8a8 .8px, transparent 1px) 0 0 / 4px 4px, #fff; }
 [data-skin="system"] :is(#app, .modal) *:not(.paper, .paper *, button, .theme-switch) { border-radius: 0 !important; }
 [data-skin="system"] .topbar { border-bottom: 2px solid #000; }
@@ -624,7 +650,17 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
   --in: inset -1px -1px #fff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
   --bar: linear-gradient(90deg, #000080, #1084d0);
 }
+/* Win98: messages in the system's own colours: a white status panel, tooltip yellow for "check this",
+   maroon for errors, and navy selection for the chosen answer. */
+:root[data-skin="win98"] {
+  --tint: #dfdfdf;
+  --ok-bg: #fff; --ok-fg: #000; --ok-line: 1px solid #808080;
+  --warn-bg: #ffffe1; --warn-fg: #000; --warn-line: 1px solid #000;
+  --bad-bg: #ffffe1; --bad-fg: #800000; --bad-line: 1px solid #800000;
+  --pick-bg: #000080; --pick-fg: #fff;
+}
 [data-skin="win98"] body { font-size: 14px; }
+[data-skin="win98"] .ed-mark input { accent-color: #000; }
 [data-skin="win98"] :is(#app, .modal) *:not(.paper, .paper *) { border-radius: 0 !important; }
 [data-skin="win98"] .topbar { background: #c0c0c0; border-bottom: 0; box-shadow: var(--out); }
 [data-skin="win98"] :is(.card, .side-card, .pool-card, .modal-box, .empty) { background: #c0c0c0; border: 0; box-shadow: var(--out); }
@@ -701,6 +737,7 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
 [data-skin="xp"] .stepper button.active { background: #fff; border-color: #7f9db9; color: #000; box-shadow: inset 0 -3px #ffc83d; }
 [data-skin="xp"] .stepper button.active span { background: #245edb; border-color: #245edb; }
 [data-skin="xp"] .stepper { --step-done: #21a121; --step-done-soft: #eaf7e4; }
+:root[data-skin="xp"] { --pick-bg: #eaf7e4; --pick-fg: #1b7a1b; } /* the green of XP's own checkboxes, as in the stepper */
 [data-skin="xp"] :is(:is(#app, .modal) :is(input:not([type=checkbox], [type=radio], [type=range]), select, textarea), .wy) { background: #fff; border: 1px solid #7f9db9; border-radius: 0; box-shadow: none; }
 [data-skin="xp"] .wy:focus-within { border-color: #245edb; box-shadow: none; }
 [data-skin="xp"] .wy-bar { border-radius: 0; }
