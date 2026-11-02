@@ -363,7 +363,7 @@
       body.append(h('tr', null,
         h('td', { class: 'order' }, h('button', { type: 'button', title: 'Move up', 'aria-label': 'Move up', onclick: move(-1), disabled: i === 0 }, '↑'), ' ', h('button', { type: 'button', title: 'Move down', 'aria-label': 'Move down', onclick: move(1), disabled: i === project.pools.length - 1 }, '↓')),
         h('td', { class: 'pool-name' }, h('b', null, p.title), h('div', { class: 'sub' }, n + ' available' + (n < p.questions.length ? ' (' + (p.questions.length - n) + ' left out)' : '')), h('div', { class: 'chips' }, typeChips(p.questions.filter(q => !q.excluded)))),
-        h('td', null, labelIn), h('td', null, drawIn, h('div', { class: 'sub' }, 'of ' + n)), h('td', null, ptsIn), sub,
+        h('td', null, labelIn), h('td', null, h('span', { class: 'draw-cell' }, drawIn, h('span', { class: 'sub' }, 'of ' + n))), h('td', null, ptsIn), sub,
         h('td', null, h('button', { type: 'button', class: 'small', onclick: () => { ui.browse[p.id] = !ui.browse[p.id]; renderBlueprint(); } }, ui.browse[p.id] ? 'Hide questions' : 'Questions'))
       ));
       if (ui.browse[p.id]) body.append(h('tr', null, h('td', { colspan: 7 }, browseList(p))));

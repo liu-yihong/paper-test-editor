@@ -151,6 +151,8 @@ table.slots { width: 100%; border-collapse: collapse; }
 .slots tfoot td { font-weight: 700; border-bottom: 0; }
 .slots .pool-name b { font-family: var(--serif); }
 .slots .sub { font-size: .8rem; color: var(--muted); }
+/* "of N" sits beside the Draw input, so every control in the row centres on one line */
+.slots .draw-cell { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; }
 .notice { border-radius: 8px; padding: .55rem .8rem; margin-top: .6rem; font-size: .9rem; }
 .notice.warn { background: var(--amber-soft); color: var(--warn-ink); }
 .notice.bad { background: var(--red-soft); color: var(--bad-ink); }
