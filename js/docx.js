@@ -53,6 +53,9 @@
     p += '<w:spacing w:before="' + (o.before || 0) + '" w:after="' + (o.after == null ? 60 : o.after) + '"' + (o.line ? ' w:line="' + o.line + '" w:lineRule="' + (o.lineRule || 'auto') + '"' : '') + '/>';
     if (o.left || o.hanging || o.right) p += '<w:ind w:left="' + (o.left || 0) + '"' + (o.right ? ' w:right="' + o.right + '"' : '') + (o.hanging ? ' w:hanging="' + o.hanging + '"' : '') + '/>';
     if (o.align) p += '<w:jc w:val="' + o.align + '"/>';
+    // line items up by their tops: a number beside an inline picture then sits at the
+    // picture's top instead of its bottom edge (Format › Paragraph › Text alignment: Top)
+    if (o.textTop) p += '<w:textAlignment w:val="top"/>';
     return '<w:pPr>' + p + '</w:pPr>';
   }
   const para = (content, o) => '<w:p>' + pPr(o) + content + '</w:p>';
@@ -474,7 +477,7 @@
           break;
         }
         case 'essayKey': {
-          out.push(self.blocksXml(self.rich(b.stem, { prefix: run(b.n + '. ', { b: true }), suffix: run('  (' + b.pts + ')', { color: '555555', sz: small }), p: { keepNext: true, before: 200 } }), true));
+          out.push(self.blocksXml(self.rich(b.stem, { prefix: run(b.n + '. ', { b: true }), suffix: run('  (' + b.pts + ')', { color: '555555', sz: small }), p: { keepNext: true, before: 200, textTop: PT.paper.startsWithPicture(b.stem) } }), true));
           out.push(para(run('Sample answer', { b: true, sz: small }), { keepNext: true, left: 360 }));
           out.push(self.blocksXml(self.rich(b.sample || '<i>None given.</i>', { p: { left: 360, keepNext: true, shade: 'F3F3F3' } }), true));
           out.push(para(run('Rubric notes', { b: true, sz: small }), { keepNext: true, left: 360, before: 120 }));
@@ -490,10 +493,11 @@
     const self = this;
     const IND = 440;
     const out = [];
+    const picFirst = PT.paper.startsWithPicture;
     out.push(self.blocksXml(self.rich(b.stem, {
       prefix: run(b.n + '.' + '\t', { b: true }),
       suffix: b.pts ? run('  (' + b.pts + ')', { color: '555555', sz: small }) : '',
-      p: { left: IND, hanging: IND, keepNext: true, before: 180, tabs: [{ pos: IND }] }
+      p: { left: IND, hanging: IND, keepNext: true, before: 180, tabs: [{ pos: IND }], textTop: picFirst(b.stem) }
     }), true));
     b.parts.forEach(p => {
       switch (p.k) {
@@ -504,7 +508,7 @@
           } else {
             p.items.forEach(c => out.push(self.blocksXml(self.rich(c.html, {
               prefix: run((p.boxes ? '◯ ' : '') + c.label + '.\t', { b: true }),
-              p: { left: IND + 560, hanging: 560 - 200, keepNext: true, tabs: [{ pos: IND + 560 }], after: 40 }
+              p: { left: IND + 560, hanging: 560 - 200, keepNext: true, tabs: [{ pos: IND + 560 }], after: 40, textTop: picFirst(c.html) }
             }), true)));
           }
           break;

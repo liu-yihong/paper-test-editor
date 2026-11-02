@@ -283,7 +283,7 @@
       case 'end': return '<div class="pp-end">' + b.html + '</div>';
       case 'q': {
         const tools = opts && opts.tools ? '<span class="pp-tools" data-item="' + esc(b.itemId) + '"><button type="button" data-act="edit">Edit</button><button type="button" data-act="swap">Swap</button></span>' : '';
-        return '<section class="pp-q" data-item="' + esc(b.itemId) + '">' + tools + '<div class="pp-stem"><span class="pp-n">' + b.n + '.</span><div class="pp-stem-text">' + b.stem +
+        return '<section class="pp-q" data-item="' + esc(b.itemId) + '">' + tools + '<div class="pp-stem' + picFirst(b.stem) + '"><span class="pp-n">' + b.n + '.</span><div class="pp-stem-text">' + b.stem +
           '</div>' + (b.pts ? '<span class="pp-pts">(' + esc(b.pts) + ')</span>' : '') + '</div>' + b.parts.map(partHtml).join('') + '</section>';
       }
       case 'grid':
@@ -306,21 +306,31 @@
           b.rows.map(r => '<tr><td>' + r.n + '</td><td class="pp-ans">' + esc(r.answer) + '</td><td>' + r.pts + '</td><td>' + esc(r.type) + '</td><td>' + esc(r.source) + '</td></tr>').join('') +
           '</tbody><tfoot><tr><td></td><td>Total</td><td>' + b.total + '</td><td colspan="2"></td></tr></tfoot></table>';
       case 'essayKey':
-        return '<section class="pp-q pp-ekey"><div class="pp-stem"><span class="pp-n">' + b.n + '.</span><div class="pp-stem-text">' + b.stem + '</div><span class="pp-pts">(' + esc(b.pts) + ')</span></div>' +
+        return '<section class="pp-q pp-ekey"><div class="pp-stem' + picFirst(b.stem) + '"><span class="pp-n">' + b.n + '.</span><div class="pp-stem-text">' + b.stem + '</div><span class="pp-pts">(' + esc(b.pts) + ')</span></div>' +
           '<div class="pp-sample"><b>Sample answer</b>' + (b.sample ? '<div>' + b.sample + '</div>' : '<div class="pp-muted">None given.</div>') + '</div>' +
           '<div class="pp-rubric"><b>Rubric notes</b>' + linesHtml(b.lines) + '</div></section>';
     }
     return '';
   }
 
+  /**
+   * True when rich HTML opens with a picture (ignoring wrappers, spaces and line breaks).
+   * Such rows align their number to the top of the picture instead of its baseline,
+   * which for an inline picture is its bottom edge.
+   */
+  function startsWithPicture(html) {
+    return /^(?:\s|&nbsp;|<br\s*\/?>|<(?:p|div|span|strong|b|em|i|u|a|figure|center)\b[^>]*>)*<img\b/i.test(String(html || ''));
+  }
+  const picFirst = (html) => startsWithPicture(html) ? ' pp-pic-first' : '';
+
   function partHtml(p) {
     switch (p.k) {
       case 'hint': return '<p class="pp-hint">' + esc(p.text) + '</p>';
       case 'choices':
-        return '<ol class="pp-choices' + (p.inline ? ' pp-inline' : '') + '">' + p.items.map(c => '<li><span class="pp-lab' + (p.boxes ? ' pp-circle' : '') + '">' + esc(c.label) + (p.boxes ? '' : '.') + '</span><div>' + c.html + '</div></li>').join('') + '</ol>';
+        return '<ol class="pp-choices' + (p.inline ? ' pp-inline' : '') + '">' + p.items.map(c => '<li' + (picFirst(c.html) ? ' class="pp-pic-first"' : '') + '><span class="pp-lab' + (p.boxes ? ' pp-circle' : '') + '">' + esc(c.label) + (p.boxes ? '' : '.') + '</span><div>' + c.html + '</div></li>').join('') + '</ol>';
       case 'match':
-        return '<div class="pp-match"><ol>' + p.left.map(x => '<li>' + (p.blanks ? '<i class="pp-blank"></i>' : '') + '<span class="pp-lab">' + esc(x.label) + '.</span><div>' + x.html + '</div></li>').join('') + '</ol>' +
-          '<ol>' + p.right.map(x => '<li><span class="pp-lab">' + esc(x.label) + '.</span><div>' + x.html + '</div></li>').join('') + '</ol></div>';
+        return '<div class="pp-match"><ol>' + p.left.map(x => '<li' + (picFirst(x.html) ? ' class="pp-pic-first"' : '') + '>' + (p.blanks ? '<i class="pp-blank"></i>' : '') + '<span class="pp-lab">' + esc(x.label) + '.</span><div>' + x.html + '</div></li>').join('') + '</ol>' +
+          '<ol>' + p.right.map(x => '<li' + (picFirst(x.html) ? ' class="pp-pic-first"' : '') + '><span class="pp-lab">' + esc(x.label) + '.</span><div>' + x.html + '</div></li>').join('') + '</ol></div>';
       case 'answerLine': return '<div class="pp-wides">' + p.labels.map(x => '<span><small>' + esc(x) + '</small><i></i></span>').join('') + '</div>';
       case 'lines': return linesHtml(p.n);
     }
@@ -333,5 +343,5 @@
       d.blocks.map(b => blockHtml(b, opts)).join('') + '</article>';
   }
 
-  PT.paper = { DEFAULT_SETTINGS, documents, questionBlock, defaultEndText, endText, booklet, answerSheet, answerKey, toHtml, answerText, rich, numberBlanks };
+  PT.paper = { startsWithPicture, DEFAULT_SETTINGS, documents, questionBlock, defaultEndText, endText, booklet, answerSheet, answerKey, toHtml, answerText, rich, numberBlanks };
 })();

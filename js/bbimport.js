@@ -47,14 +47,60 @@
   const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   /* ---------- HTML cleanup → editor markup ---------- */
+  const XID_LINK_RE = /bbcswebdav\/(?:[^"'\s>]*\/)?xid-\d+_\d+/i;
+  const decodeAttr = (v) => String(v)
+    .replace(/&quot;/g, '"').replace(/&#0*39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&#(\d+);/g, (m, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (m, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&amp;/g, '&');
+  function attrsOf(s) {
+    const out = {};
+    String(s).replace(/([a-zA-Z_:][-\w:.]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/g, (m, k, v, a, b, c) => {
+      out[k.toLowerCase()] = decodeAttr(a != null ? a : b != null ? b : c);
+      return m;
+    });
+    return out;
+  }
+  const escAttr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  function bbfileJson(v) {
+    try { return v ? JSON.parse(v) : null; } catch (e) { return null; }
+  }
+
+  /**
+   * Blackboard Ultra's editor embeds a picture as a link rather than an <img>:
+   *   <a href="@X@EmbeddedFile.requestUrlStub@X@bbcswebdav/xid-N_1"
+   *      data-bbfile='{"render":"inline","mimeType":"image/png","alternativeText":"…"}'>…</a>
+   * Rewrite those as <img> so they are imported like any other picture (as the
+   * Blackboard Question Editor does). Links to other files (a PDF, say) are left alone.
+   */
+  function embeddedPicturesToImg(s) {
+    return s.replace(/<a\b([^>]*)>[\s\S]*?<\/a>/gi, (m, a) => {
+      const at = attrsOf(a);
+      if (!at['data-bbfile'] || !XID_LINK_RE.test(at.href || '')) return m;
+      const j = bbfileJson(at['data-bbfile']);
+      if (!j) return m;
+      const mime = String(j.mimeType || '');
+      const isPicture = mime ? /^image\//i.test(mime) : j.render === 'inline';
+      if (!isPicture) return m;
+      return '<img src="' + escAttr(at.href) + '" data-bbfile="' + escAttr(at['data-bbfile']) + '"' +
+        (at.style ? ' style="' + escAttr(at.style) + '"' : '') + '>';
+    });
+  }
+
   function cleanHtml(html, pics) {
     let s = String(html || '');
     s = s.replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
+    s = embeddedPicturesToImg(s);
     // pictures: Blackboard embedded files → project picture names
     s = s.replace(/<img\b([^>]*)>/gi, (m, attrs) => {
-      const src = (/\bsrc\s*=\s*["']([^"']*)["']/i.exec(attrs) || [])[1] || '';
-      const alt = (/\balt\s*=\s*["']([^"']*)["']/i.exec(attrs) || [])[1] || '';
-      const w = (/\bwidth\s*=\s*["']?(\d{1,4})/i.exec(attrs) || [])[1] || '';
+      const at = attrsOf(attrs);
+      const src = at.src || '';
+      let alt = at.alt || '';
+      if (!alt && at['data-bbfile']) {
+        const j = bbfileJson(at['data-bbfile']);
+        if (j) alt = j.alternativeText || j.linkName || '';
+      }
+      alt = alt.replace(/[<>"]/g, '');
+      const w = (/^\d{1,4}$/.test(at.width || '') ? at.width : '') || (/(?:^|;)\s*width\s*:\s*(\d{1,4})px/i.exec(at.style || '') || [])[1] || '';
       const name = pics ? pics.resolve(src) : null;
       if (!name) return alt ? '[Picture: ' + alt + ']' : '[Picture]';
       return '<img src="' + name + '"' + (alt ? ' alt="' + alt.replace(/"/g, '') + '"' : '') + (w ? ' width="' + w + '"' : '') + '>';
@@ -77,14 +123,32 @@
 
   /* ---------- pictures inside a package ---------- */
   const EXT_TYPE = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+  const TYPE_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/svg+xml': 'svg' };
+  /** Picture type from the first bytes, for files Blackboard stores without an extension. */
+  function sniffType(b) {
+    if (!b || b.length < 12) return null;
+    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
+    if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+    if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return 'image/gif';
+    if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
+    return null;
+  }
   function pictureStore(files, images) {
     const byXid = new Map();
     const byPath = new Map();
+    const typeOf = new Map(); // path → MIME type, from the extension or (when there is none) the bytes
     files.forEach((bytes, path) => {
+      if (/\.xml$/i.test(path)) return;
       const m = /\.(png|jpe?g|gif|webp|svg)$/i.exec(path);
-      if (!m) return;
-      const xid = /xid-\d+_\d+/.exec(path);
-      if (xid) byXid.set(xid[0], path);
+      const type = m ? EXT_TYPE[m[1].toLowerCase()] : sniffType(bytes);
+      if (!type) return;
+      typeOf.set(path, type);
+      // the file's own xid is the last one in its path (folders carry xids too):
+      // csfiles/home_dir/__xid-A_1/__xid-B_1/__xid-N_1.png, …/name__xid-N_1.png, res00001/xid-N_1
+      const xid = /(?:^|\/|__)(xid-\d+_\d+)(?:\.[A-Za-z0-9]+)?$/i.exec(path);
+      const k = xid && xid[1].toLowerCase();
+      // prefer csfiles/ copies over other files sharing the xid
+      if (k && (!byXid.has(k) || /^csfiles\//i.test(path))) byXid.set(k, path);
       byPath.set(path.toLowerCase(), path);
       byPath.set(path.split('/').pop().toLowerCase(), path);
     });
@@ -92,23 +156,31 @@
     function nameFor(path) {
       if (named.has(path)) return named.get(path);
       const file = path.split('/').pop();
-      const ext = (/\.([a-z0-9]+)$/i.exec(file) || [, 'png'])[1].toLowerCase();
-      let base = file.replace(/\.[^.]+$/, '').replace(/__xid-\d+_\d+$/, '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'picture';
+      const type = typeOf.get(path) || 'image/png';
+      const ext = TYPE_EXT[type] || 'png';
+      let base = file.replace(/\.[^.]+$/, '').replace(/_*xid-\d+_\d+$/i, '');
+      // Blackboard keeps the original file name in the .xml beside the file
+      if (!base && files.has(path + '.xml')) {
+        const id = /<identifier>([^<]*)<\/identifier>/i.exec(new TextDecoder().decode(files.get(path + '.xml')));
+        if (id) base = decodeAttr(id[1]).split('#').pop().split('/').pop().replace(/\.[A-Za-z0-9]{2,4}$/, '');
+      }
+      base = base.normalize('NFKD').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'picture';
       if (!/^[A-Za-z0-9]/.test(base)) base = 'p' + base;
       let name = base + '.' + ext, k = 2;
       while (Object.prototype.hasOwnProperty.call(images, name)) {
         if (images[name].source === path) break;
         name = base + '-' + k++ + '.' + ext;
       }
-      images[name] = { type: EXT_TYPE[ext] || 'image/png', data: PT.zip.bytesToB64(files.get(path)), source: path };
+      images[name] = { type, data: PT.zip.bytesToB64(files.get(path)), source: path };
       named.set(path, name);
       return name;
     }
     return {
       resolve(src) {
-        src = decodeURIComponent(String(src || '').replace(/&amp;/g, '&'));
-        const xid = /xid-\d+_\d+/.exec(src);
-        if (xid && byXid.has(xid[0])) return nameFor(byXid.get(xid[0]));
+        src = String(src || '').replace(/&amp;/g, '&');
+        try { src = decodeURIComponent(src); } catch (e) { /* keep as is */ }
+        const xid = /xid-\d+_\d+/i.exec(src);
+        if (xid && byXid.has(xid[0].toLowerCase())) return nameFor(byXid.get(xid[0].toLowerCase()));
         const tail = src.split(/[\\/]/).pop().toLowerCase();
         if (byPath.has(src.toLowerCase())) return nameFor(byPath.get(src.toLowerCase()));
         if (tail && byPath.has(tail)) return nameFor(byPath.get(tail));

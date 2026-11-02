@@ -333,6 +333,11 @@ table.pp-grade { border-collapse: collapse; font-size: 1.15em; flex: none; }
 .pp-match ol { list-style: none; padding: 0; margin: 0; }
 .pp-match li { display: flex; gap: .45em; align-items: baseline; margin: .18em 0; }
 .pp-blank { display: inline-block; width: 3em; border-bottom: 1pt solid #000; flex: none; }
+/* a row whose content opens with a picture: number and label at the picture's top, not its bottom edge */
+.pp-stem.pp-pic-first, .pp-choices li.pp-pic-first, .pp-match li.pp-pic-first { align-items: flex-start; }
+.pp-pic-first > .pp-pts { line-height: 1.614; } /* same line box as the 1.42 body text at .88em */
+.pp-pic-first > .pp-circle { margin-top: .11em; }
+.pp-pic-first > .pp-blank { height: 1.02em; }
 .pp-wides { display: flex; flex-wrap: wrap; gap: .4em 1.6em; margin: .55em 0 0 2.15em; }
 .pp-wides span { display: flex; align-items: flex-end; gap: .35em; min-width: 40%; }
 .pp-wides small { color: #444; font-size: .85em; }
