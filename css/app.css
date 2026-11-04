@@ -38,6 +38,7 @@
   --ok-bg: var(--green-soft);  --ok-fg: var(--ok-ink);     --ok-line: 1px solid transparent;
   --warn-bg: var(--amber-soft); --warn-fg: var(--warn-ink); --warn-line: 1px solid transparent;
   --bad-bg: var(--red-soft);   --bad-fg: var(--bad-ink);   --bad-line: 1px solid transparent;
+  --info-bg: var(--accent-soft); --info-fg: var(--ink);    --info-line: 1px solid transparent;
   --pick-bg: var(--green-soft); --pick-fg: var(--green);   /* the correct answer's letter, the chosen True/False */
   color-scheme: light;
   /* Fonts: the device's own fonts first. The fonts in fonts/ are downloaded only on a
@@ -176,15 +177,12 @@ table.slots { width: 100%; border-collapse: collapse; }
 .slots .mix-note { margin-top: .3rem; max-width: 14rem; white-space: normal; }
 .slots .browse-title { margin-bottom: .3rem; font-weight: 600; }
 .pool-notes .sec-lines { margin: .15rem 0 .35rem 1.2rem; }
-.notice { border-radius: 8px; padding: .55rem .8rem; margin-top: .6rem; font-size: .9rem; display: flex; gap: .55rem; align-items: baseline; }
-/* a symbol first, so the kind of notice never depends on colour alone (and works in 1-bit styles) */
-.notice::before { flex: none; width: 1.1em; text-align: center; font-weight: 700; }
+.notice { border-radius: 8px; padding: .55rem .8rem; margin-top: .6rem; font-size: .9rem; display: flex; gap: .55rem; align-items: flex-start; }
+/* a sign first (see "status icons"), so the kind of notice never depends on colour alone (and works in 1-bit styles) */
 .notice.warn { background: var(--warn-bg); color: var(--warn-fg); border: var(--warn-line); }
-.notice.warn::before { content: "!"; }
 .notice.bad { background: var(--bad-bg); color: var(--bad-fg); border: var(--bad-line); }
-.notice.bad::before { content: "\2715"; }
 .notice.ok { background: var(--ok-bg); color: var(--ok-fg); border: var(--ok-line); }
-.notice.ok::before { content: "\2713"; }
+.notice.info { background: var(--info-bg); color: var(--info-fg); border: var(--info-line); }
 .qbrowse { margin-top: .4rem; max-height: 360px; overflow: auto; border: 1px solid var(--line-2); border-radius: 8px; }
 .qbrowse div { display: flex; gap: .6rem; align-items: center; padding: .35rem .6rem; border-bottom: 1px solid var(--line-2); font-size: .88rem; }
 .qbrowse div:last-child { border-bottom: 0; }
@@ -266,6 +264,93 @@ table.slots { width: 100%; border-collapse: collapse; }
 .swap-item .t { font-size: .92rem; }
 .swap-item .chips { margin-top: .25rem; }
 .field-note { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+
+/* ---------- status icons ----------
+   The four signs (error, warning, information, ready) come from the Blackboard Question Editor:
+   one set drawn for each style, in icons/status/<style>/, made by tools/make-status-icons.py.
+   Paper uses the Question Editor's default ("Studio") set. The clean styles use theirs as masks
+   painted in the text colour, so they follow Day and Night; the retro OS styles show theirs as
+   full-colour pictures, the way those systems did. The signs only repeat what the text says,
+   so screen readers skip them. */
+/* Retro styles load their pictures as files. The clean styles' masks are written into this file as
+   data: URLs, because browsers refuse mask images loaded from files when the page is opened from disk. */
+:root { --ico-size: 16px; --ico-big: 28px; }
+:root[data-skin="system"] { --ico-err: url(../icons/status/system/err.svg); --ico-warn: url(../icons/status/system/warn.svg); --ico-info: url(../icons/status/system/info.svg); --ico-ok: url(../icons/status/system/ok.svg); --ico-big: 32px; }
+:root[data-skin="win98"] { --ico-err: url(../icons/status/win98/err.svg); --ico-warn: url(../icons/status/win98/warn.svg); --ico-info: url(../icons/status/win98/info.svg); --ico-ok: url(../icons/status/win98/ok.svg); --ico-big: 32px; }
+:root[data-skin="xp"] { --ico-err: url(../icons/status/xp/err.svg); --ico-warn: url(../icons/status/xp/warn.svg); --ico-info: url(../icons/status/xp/info.svg); --ico-ok: url(../icons/status/xp/ok.svg); --ico-big: 32px; }
+:root[data-skin="win7"] { --ico-err: url(../icons/status/win7/err.svg); --ico-warn: url(../icons/status/win7/warn.svg); --ico-info: url(../icons/status/win7/info.svg); --ico-ok: url(../icons/status/win7/ok.svg); --ico-big: 32px; }
+:root[data-skin="sakura"] { --ico-size: 17px; }
+/* generated:begin (tools/make-status-icons.py writes everything up to generated:end; edit the script, not these lines) */
+:root {
+  --ico-err: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EStudio err%3C/title%3E%3Ccircle cx="12" cy="12" r="9.2" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3Cpath d="M8.8 8.8l6.4 6.4m0-6.4-6.4 6.4" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3C/svg%3E');
+  --ico-warn: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EStudio warn%3C/title%3E%3Cpath d="M10.3 4.2 2.9 17.4c-.8 1.4.2 3.1 1.8 3.1h14.6c1.6 0 2.6-1.7 1.8-3.1L13.7 4.2c-.8-1.4-2.6-1.4-3.4 0z" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3Cpath d="M12 9.2v4.6" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3Ccircle cx="12" cy="17.1" r="1.15"/%3E%3C/svg%3E');
+  --ico-info: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EStudio info%3C/title%3E%3Ccircle cx="12" cy="12" r="9.2" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3Cpath d="M12 11v5.6" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3Ccircle cx="12" cy="7.8" r="1.15"/%3E%3C/svg%3E');
+  --ico-ok: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EStudio ok%3C/title%3E%3Ccircle cx="12" cy="12" r="9.2" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3Cpath d="M8.2 12.3l2.6 2.6 5-5.4" fill="none" stroke="%23000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/%3E%3C/svg%3E');
+}
+:root[data-skin="pico"] {
+  --ico-err: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EPico err%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M8.6 8.6l6.8 6.8m0-6.8-6.8 6.8" stroke="%23000" stroke-width="2.4" stroke-linecap="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Ccircle cx="12" cy="12" r="10"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-warn: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EPico warn%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M12 9.4v4.4" stroke="%23000" stroke-width="2.4" stroke-linecap="round"/%3E%3Ccircle cx="12" cy="17.4" r="1.5" fill="%23000"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Cpath d="M10.2 3.6 1.9 18c-.8 1.4.2 3.2 1.8 3.2h16.6c1.6 0 2.6-1.8 1.8-3.2L13.8 3.6c-.8-1.4-2.8-1.4-3.6 0z"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-info: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EPico info%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Ccircle cx="12" cy="7.6" r="1.5" fill="%23000"/%3E%3Cpath d="M12 11v6" stroke="%23000" stroke-width="2.4" stroke-linecap="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Ccircle cx="12" cy="12" r="10"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-ok: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EPico ok%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M7.8 12.4l2.8 2.8 5.6-6" fill="none" stroke="%23000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Ccircle cx="12" cy="12" r="10"/%3E%3C/g%3E%3C/svg%3E');
+}
+:root[data-skin="mvp"] {
+  --ico-err: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EMVP err%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M8.6 8.6l6.8 6.8m0-6.8-6.8 6.8" stroke="%23000" stroke-width="3" stroke-linecap="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Crect x="2" y="2" width="20" height="20" rx="5.5"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-warn: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EMVP warn%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M12 7.4v5" stroke="%23000" stroke-width="3" stroke-linecap="round"/%3E%3Ccircle cx="12" cy="16.2" r="1.8" fill="%23000"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Crect x="4.2" y="4.2" width="15.6" height="15.6" rx="3.6" transform="rotate(45 12 12)"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-info: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EMVP info%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Ccircle cx="12" cy="7.6" r="1.8" fill="%23000"/%3E%3Cpath d="M12 11v6" stroke="%23000" stroke-width="3" stroke-linecap="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Crect x="2" y="2" width="20" height="20" rx="5.5"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-ok: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3EMVP ok%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M7.8 13l2.8 2.8 5.6-6" fill="none" stroke="%23000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Crect x="2" y="2" width="20" height="20" rx="5.5"/%3E%3C/g%3E%3C/svg%3E');
+}
+:root[data-skin="new"] {
+  --ico-err: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3Enew.css err%3C/title%3E%3Cpath d="M6 6l12 12M18 6 6 18" fill="none" stroke="%23000" stroke-width="2.6" stroke-linecap="square"/%3E%3C/svg%3E');
+  --ico-warn: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3Enew.css warn%3C/title%3E%3Cpath d="M12 3.5v11" fill="none" stroke="%23000" stroke-width="2.6" stroke-linecap="square"/%3E%3Crect x="10.7" y="18" width="2.6" height="2.6"/%3E%3C/svg%3E');
+  --ico-info: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3Enew.css info%3C/title%3E%3Crect x="10.7" y="3.4" width="2.6" height="2.6"/%3E%3Cpath d="M8.5 9.6H12v10.8M8.5 20.4h7" fill="none" stroke="%23000" stroke-width="2.6" stroke-linecap="square"/%3E%3C/svg%3E');
+  --ico-ok: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3Enew.css ok%3C/title%3E%3Cpath d="M4 12.6l5.2 5.2L20 7" fill="none" stroke="%23000" stroke-width="2.6" stroke-linecap="square" stroke-linejoin="miter"/%3E%3C/svg%3E');
+}
+:root[data-skin="sakura"] {
+  --ico-err: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3ESakura err%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M9.7 9.7l4.6 4.6m0-4.6-4.6 4.6" stroke="%23000" stroke-width="2.5" stroke-linecap="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Cpath transform="rotate(0 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(72 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(144 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(216 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(288 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Ccircle cx="12" cy="12" r="5.9"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-warn: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3ESakura warn%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M12 8.4v3.8" stroke="%23000" stroke-width="2.5" stroke-linecap="round"/%3E%3Ccircle cx="12" cy="15.5" r="1.4" fill="%23000"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Cpath transform="rotate(0 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(72 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(144 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(216 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(288 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Ccircle cx="12" cy="12" r="5.9"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-info: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3ESakura info%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Ccircle cx="12" cy="8.6" r="1.4" fill="%23000"/%3E%3Cpath d="M12 11.6v3.9" stroke="%23000" stroke-width="2.5" stroke-linecap="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Cpath transform="rotate(0 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(72 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(144 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(216 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(288 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Ccircle cx="12" cy="12" r="5.9"/%3E%3C/g%3E%3C/svg%3E');
+  --ico-ok: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"%3E%3Ctitle%3ESakura ok%3C/title%3E%3Cmask id="k"%3E%3Crect width="24" height="24" fill="%23fff"/%3E%3Cpath d="M9.2 12.1l2 2 3.8-4.2" fill="none" stroke="%23000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/mask%3E%3Cg mask="url(%23k)"%3E%3Cpath transform="rotate(0 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(72 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(144 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(216 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Cpath transform="rotate(288 12 12)" d="M12 12C8.2 9.4 7.8 4.6 9.7 2.5c.8-.9 1.7-.7 2.3.5.6-1.2 1.5-1.4 2.3-.5 1.9 2.1 1.5 6.9-2.3 9.5z"/%3E%3Ccircle cx="12" cy="12" r="5.9"/%3E%3C/g%3E%3C/svg%3E');
+}
+/* generated:end */
+
+/* which sign each message gets */
+.sico, .notice.warn { --ico: var(--ico-warn); }
+.sico.err, .notice.bad { --ico: var(--ico-err); }
+.sico.info, .notice.info { --ico: var(--ico-info); }
+.sico.ok, .notice.ok { --ico: var(--ico-ok); }
+
+/* clean styles: a mask in the text colour */
+.sico, .notice::before {
+  content: ""; display: inline-block; flex: none; width: var(--ico-size); height: var(--ico-size);
+  background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat;
+}
+/* retro OS styles: the full-colour picture, pixel art kept sharp (written out: :is() cannot hold ::before) */
+[data-skin="system"] .sico, [data-skin="win98"] .sico, [data-skin="xp"] .sico, [data-skin="win7"] .sico,
+[data-skin="system"] .notice::before, [data-skin="win98"] .notice::before, [data-skin="xp"] .notice::before, [data-skin="win7"] .notice::before {
+  background: var(--ico) center / contain no-repeat; -webkit-mask: none; mask: none;
+}
+[data-skin="system"] .sico, [data-skin="win98"] .sico,
+[data-skin="system"] .notice::before, [data-skin="win98"] .notice::before { image-rendering: pixelated; }
+
+/* the sign sits on the first line of text, however the text wraps */
+.notice::before { margin-top: 2px; margin-top: calc(.5lh - var(--ico-size) / 2); }
+/* status lines (Generate plan, overlap with other forms): sign, then text, wrapped lines aligned */
+.sline { display: flex; gap: .45rem; align-items: flex-start; }
+.sline > .sico { margin-top: 2px; margin-top: calc(.5lh - var(--ico-size) / 2); }
+.sline > .sline-mark { flex: none; width: var(--ico-size); text-align: center; color: var(--muted); }
+.sline > .sico.ok { color: var(--ok-fg); }
+.sline > .sico.warn { color: var(--warn-fg); }
+.sline > .sico.err { color: var(--bad-fg); }
+.sline > .sico.info { color: var(--accent); }
+
+/* dialogs: a large sign beside the message, as in a classic message box */
+.modal-msg { display: flex; gap: 14px; align-items: flex-start; }
+.modal-msg .sico { --ico-size: var(--ico-big); margin-top: 2px; }
+.modal-msg .sico.err { color: var(--bad-fg); }
+.modal-msg .sico.warn { color: var(--warn-fg); }
+.modal-msg .sico.info { color: var(--accent); }
+.modal-msg-body { flex: 1 1 auto; min-width: 0; }
+.modal-msg-body > :first-child { margin-top: 0; }
 
 /* ---------- footer ---------- */
 .site-foot { border-top: 1px solid var(--line); background: var(--surface); margin-top: 1rem; }
@@ -605,13 +690,14 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
   --sans: "Geneva", "Chicago", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --serif: "Chicago", "Charcoal", "Geneva", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
-/* 1-bit: no hues. Status is told by the symbol and the frame (solid = ok, dashed = check, double = problem);
+/* 1-bit: no hues. Status is told by the sign and the frame (solid = ok, dashed = check, double = problem, dotted = note);
    the chosen answer is inverted, like the current step and pressed buttons. */
 :root[data-skin="system"] {
   --red: #000; --red-soft: #fff; --green: #000; --green-soft: #fff; --amber: #000; --amber-soft: #fff; --tint: #e4e4e4;
   --ok-bg: #fff; --ok-fg: #000; --ok-line: 1px solid #000;
   --warn-bg: #fff; --warn-fg: #000; --warn-line: 1px dashed #000;
   --bad-bg: #fff; --bad-fg: #000; --bad-line: 3px double #000;
+  --info-bg: #fff; --info-fg: #000; --info-line: 1px dotted #000;
   --pick-bg: #000; --pick-fg: #fff;
 }
 [data-skin="system"] .ed-x:hover { background: #000; color: #fff; }
@@ -669,6 +755,7 @@ table.pp-key { width: 100%; border-collapse: collapse; margin: .5em 0 1.2em; fon
   --ok-bg: #fff; --ok-fg: #000; --ok-line: 1px solid #808080;
   --warn-bg: #ffffe1; --warn-fg: #000; --warn-line: 1px solid #000;
   --bad-bg: #ffffe1; --bad-fg: #800000; --bad-line: 1px solid #800000;
+  --info-bg: #fff; --info-fg: #000; --info-line: 1px solid #808080;
   --pick-bg: #000080; --pick-fg: #fff;
 }
 [data-skin="win98"] body { font-size: 14px; }

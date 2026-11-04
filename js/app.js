@@ -40,9 +40,16 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, ms || 3200);
   }
 
-  function openModal(title, body, actions) {
+  // a status sign from icons/status (ok, warn, err, info); decorative, the text says the same
+  const sign = (kind) => h('span', { class: 'sico ' + kind, 'aria-hidden': 'true' });
+  // one status line: the sign, then the text
+  const sline = (kind, ...kids) => h('div', { class: 'sline' }, sign(kind), h('div', null, ...kids));
+
+  // icon (optional): 'warn', 'err' or 'info' puts a large sign beside the message, as in a classic message box
+  function openModal(title, body, actions, icon) {
     $('#modal-title').textContent = title;
-    $('#modal-body').replaceChildren(...[].concat(body).filter(Boolean));
+    const kids = [].concat(body).filter(Boolean);
+    $('#modal-body').replaceChildren(...(icon ? [h('div', { class: 'modal-msg' }, sign(icon), h('div', { class: 'modal-msg-body' }, ...kids))] : kids));
     $('#modal-actions').replaceChildren(...(actions || []).map(a => h('button', { type: 'button', class: a.primary ? 'primary' : a.danger ? 'danger' : '', onclick: a.onclick }, a.label)));
     $('#modal').hidden = false;
     const f = $('#modal-body .wy-area, #modal-body input:not([type=radio]):not([type=checkbox]), #modal-body textarea, #modal-actions button.primary');
@@ -50,7 +57,7 @@
   }
   function closeModal() { $('#modal').hidden = true; $('#modal-body').replaceChildren(); $('#modal .modal-box').classList.remove('wide'); }
   function confirmBox(title, text, okLabel, onOk, danger) {
-    openModal(title, h('p', null, text), [{ label: 'Cancel', onclick: closeModal }, { label: okLabel, primary: !danger, danger, onclick: () => { closeModal(); onOk(); } }]);
+    openModal(title, h('p', null, text), [{ label: 'Cancel', onclick: closeModal }, { label: okLabel, primary: !danger, danger, onclick: () => { closeModal(); onOk(); } }], 'warn');
   }
 
   /* ---------- project ---------- */
@@ -250,7 +257,7 @@
           toast(file.name + ' is not a .zip bank or a .json project.');
         }
       } catch (err) {
-        openModal('Couldn’t read ' + file.name, h('p', null, err.message || String(err)), [{ label: 'OK', primary: true, onclick: closeModal }]);
+        openModal('Couldn’t read ' + file.name, h('p', null, err.message || String(err)), [{ label: 'OK', primary: true, onclick: closeModal }], 'err');
       }
     }
     if (added) toast('Imported ' + plural(added, 'pool') + '.');
@@ -475,7 +482,7 @@
     if ($('#tot-p')) $('#tot-p').textContent = s.points;
     const w = $('#blueprint-warnings');
     const notes = [];
-    if (project.pools.length && !s.questions) notes.push(h('div', { class: 'notice warn', text: 'Set how many questions to draw from each pool. In Blackboard this is the “questions to display” number for each pool in the test. To draw from several banks together, use Combine with above.' }));
+    if (project.pools.length && !s.questions) notes.push(h('div', { class: 'notice info', text: 'Set how many questions to draw from each pool. In Blackboard this is the “questions to display” number for each pool in the test. To draw from several banks together, use Combine with above.' }));
     project.pools.forEach(p => {
       const bad = p.questions.filter(q => q.excluded && BQ.validate(q, { images: project.images }).errors.length).length;
       if (bad) notes.push(h('div', { class: 'notice bad', text: '“' + p.title + '”: ' + plural(bad, 'question has', 'questions have') + ' a problem (for example no correct answer marked) and will not be drawn. Open Questions to fix them.' }));
@@ -564,15 +571,15 @@
     const X = project.gen.count;
     const line = (n, d, name, lead) => {
       const need = X * d;
-      if (need <= n) return h('div', null, '✓ ', lead ? h('b', null, name) : name, ': ' + X + ' × ' + d + ' = ' + need + ' of ' + n + ' questions, so forms share none.');
+      if (need <= n) return sline('ok', lead ? h('b', null, name) : name, ': ' + X + ' × ' + d + ' = ' + need + ' of ' + n + ' questions, so forms share none.');
       const lo = Math.floor(need / n), hi = Math.ceil(need / n);
-      return h('div', null, '• ', lead ? h('b', null, name) : name, ': needs ' + need + ' draws from ' + n + ' questions, so each is used ' + (lo === hi ? lo : lo + '–' + hi) + ' times and forms will share some.');
+      return sline('warn', lead ? h('b', null, name) : name, ': needs ' + need + ' draws from ' + n + ' questions, so each is used ' + (lo === hi ? lo : lo + '–' + hi) + ' times and forms will share some.');
     };
     const notes = blueprintSections().filter(s => s.draw > 0).map(sec => {
       if (sec.pools.length === 1) return line(sec.size, Math.min(sec.draw, sec.size), PT.forms.sectionName(sec), true);
       const mix = PT.forms.sectionMix(sec);
-      return h('div', null, h('div', null, '▸ ', h('b', null, PT.forms.sectionName(sec)), ': ' + Math.min(sec.draw, sec.size) + ' per form from ' + plural(sec.pools.length, 'bank') + ' combined, the same mix on every form.'),
-        h('div', { class: 'sec-lines' }, sec.pools.map((p, i) => mix[i] ? line(p.questions.length, mix[i], p.title, false) : h('div', null, '– ' + p.title + ': none on this draw (too small a share).'))));
+      return h('div', null, h('div', { class: 'sline' }, h('span', { class: 'sline-mark', 'aria-hidden': 'true', text: '▸' }), h('div', null, h('b', null, PT.forms.sectionName(sec)), ': ' + Math.min(sec.draw, sec.size) + ' per form from ' + plural(sec.pools.length, 'bank') + ' combined, the same mix on every form.')),
+        h('div', { class: 'sec-lines' }, sec.pools.map((p, i) => mix[i] ? line(p.questions.length, mix[i], p.title, false) : sline('info', p.title + ': none on this draw (too small a share).'))));
     });
     $('#gen-status').replaceChildren(...(notes.length ? [h('div', { class: 'pool-notes' }, notes)] : []));
   }
@@ -655,7 +662,7 @@
     const others = project.forms.filter(f => f !== form).map(f => ({ code: f.code, n: f.items.filter(it => keys.has(it.key)).length }));
     $('#overlap-mini').replaceChildren(h('h4', null, 'Form ' + form.code),
       h('div', null, plural(form.items.length, 'question') + ' · ' + PT.forms.totalPoints(form) + ' points'),
-      ...others.map(o => h('div', { class: o.n ? '' : 'muted' }, (o.n ? '• Shares ' + plural(o.n, 'question') : '✓ Shares nothing') + ' with ' + o.code)),
+      ...others.map(o => o.n ? sline('warn', 'Shares ' + plural(o.n, 'question') + ' with ' + o.code) : sline('ok', 'Shares nothing with ' + o.code)),
       ...(ui.doc === 'booklet' ? [h('p', { class: 'field-note', text: 'Hover a question to edit it or swap it for another from its pool.' })] : []));
   }
 
@@ -965,7 +972,7 @@
   function printDocs(list) {
     if (!list.length) return;
     if (inPreviewFrame()) {
-      openModal('Printing is blocked in this preview', h('p', null, 'This preview window does not allow the print dialog. Use the Word buttons here, or open the Paper Test Editor from its own site (for example GitHub Pages), where PDF export works.'), [{ label: 'OK', primary: true, onclick: closeModal }]);
+      openModal('Printing is blocked in this preview', h('p', null, 'This preview window does not allow the print dialog. Use the Word buttons here, or open the Paper Test Editor from its own site (for example GitHub Pages), where PDF export works.'), [{ label: 'OK', primary: true, onclick: closeModal }], 'info');
       return false;
     }
     const s = project.settings;
@@ -1135,7 +1142,7 @@
       h('p', null, 'This editor stands on the shoulders of an earlier tool, published standards, open-source projects and their documentation writers. Thank you.'),
       group('The companion editor', [
         item('Blackboard Question Editor', 'https://github.com/liu-yihong/blackboard-question-editor',
-          'The question model, the rich-text markup, math rendering, the picture and table tools, the zip writer and the .bbq.json project format all come from this sister project, so a question looks and behaves the same in both tools. MIT licence.')
+          'The question model, the rich-text markup, math rendering, the picture and table tools, the zip writer, the .bbq.json project format and the status signs (error, warning, information and ready, drawn for each style) all come from this sister project, so a question looks and behaves the same in both tools. MIT licence.')
       ]),
       group('Blackboard question banks', [
         item('Anthology: Question Banks (Ultra)', 'https://help.anthology.com/blackboard/instructor/en/assessments/questions/reuse-questions/question-banks.html',
