@@ -68,7 +68,12 @@
   function sectionsOf(project, form) {
     const s = project.settings;
     if (!s.showSections || s.mixSections) return null;
-    return project.pools;
+    return PT.forms.sectionsOf(project.pools);
+  }
+  /** Which part an item prints under: its section (forms made before sections: its pool). */
+  const partKey = (it) => it.sectionId || it.poolId;
+  function findSection(secs, it) {
+    return secs.find(x => x.id === partKey(it)) || secs.find(x => x.pools.some(p => p.id === it.poolId)) || null;
   }
 
   function header(project, form, docLabel, variant) {
@@ -91,14 +96,15 @@
     return t == null ? defaultEndText(project.settings) : t;
   }
 
-  /** Parts of a form (pools in print order) with their points, for the cover's grading table. */
+  /** Parts of a form (sections in print order) with their points, for the cover's grading table. */
   function partsOf(project, form) {
     const out = [];
+    const secs = PT.forms.sectionsOf(project.pools);
     form.items.forEach(it => {
-      let p = out.find(x => x.poolId === it.poolId);
+      let p = out.find(x => x.key === partKey(it));
       if (!p) {
-        const pool = project.pools.find(x => x.id === it.poolId);
-        p = { poolId: it.poolId, label: pool ? (pool.label || pool.title) : 'Part', pts: 0, n: 0 };
+        const sec = findSection(secs, it);
+        p = { key: partKey(it), label: sec ? PT.forms.sectionName(sec) : 'Part', pts: 0, n: 0 };
         out.push(p);
       }
       p.pts += Number(it.points) || 0;
@@ -133,16 +139,16 @@
       if (hasInstr) blocks.push({ k: 'instructions', html: rich(e.instructions, ctx) });
       if (onSheet) blocks.push({ k: 'note', text: sheetNote });
     }
-    const pools = sectionsOf(project, form);
-    let lastPool = null, part = 0;
+    const secs = sectionsOf(project, form);
+    let lastPart = null, part = 0;
     form.items.forEach((it, i) => {
-      if (pools && it.poolId !== lastPool) {
-        const p = pools.find(x => x.id === it.poolId);
-        const mine = form.items.filter(x => x.poolId === it.poolId);
+      if (secs && partKey(it) !== lastPart) {
+        const sec = findSection(secs, it);
+        const mine = form.items.filter(x => partKey(x) === partKey(it));
         const pts = mine.reduce((a, x) => a + (Number(x.points) || 0), 0);
         part++;
-        blocks.push({ k: 'section', text: 'Part ' + part + (p ? ' · ' + (p.label || p.title) : ''), sub: mine.length + (mine.length === 1 ? ' question' : ' questions') + (s.showPoints ? ', ' + pts + ' points' : '') });
-        lastPool = it.poolId;
+        blocks.push({ k: 'section', text: 'Part ' + part + (sec ? ' · ' + PT.forms.sectionName(sec) : ''), sub: mine.length + (mine.length === 1 ? ' question' : ' questions') + (s.showPoints ? ', ' + pts + ' points' : '') });
+        lastPart = partKey(it);
       }
       blocks.push(questionBlock(it, i + 1, project, ctx));
     });
@@ -218,12 +224,16 @@
   function answerKey(project, form, ctx) {
     const blocks = [header(project, form, 'Answer key')];
     const pools = project.pools;
+    const secs = PT.forms.sectionsOf(pools);
     blocks.push({ k: 'note', text: 'Instructor copy. Generated ' + new Date(form.createdAt).toLocaleDateString() + ' from seed “' + form.seed + '”.' });
     blocks.push({
       k: 'keyTable', total: PT.forms.totalPoints(form),
       rows: form.items.map((it, i) => {
         const p = pools.find(x => x.id === it.poolId);
-        return { n: i + 1, type: BQ.TYPE_LABEL[it.q.type] || it.q.type, answer: answerText(it), pts: Number(it.points) || 0, source: p ? (p.label || p.title) : '' };
+        const sec = findSection(secs, it);
+        // a combined section also names the bank, so the instructor can find the question
+        const source = sec ? PT.forms.sectionName(sec) + (sec.pools.length > 1 && p ? ' (' + p.title + ')' : '') : p ? (p.label || p.title) : '';
+        return { n: i + 1, type: BQ.TYPE_LABEL[it.q.type] || it.q.type, answer: answerText(it), pts: Number(it.points) || 0, source };
       })
     });
     form.items.forEach((it, i) => {

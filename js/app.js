@@ -74,6 +74,7 @@
     out.pools = (p.pools || []).map(pl => Object.assign({ id: BQ.uid(), title: 'Pool', draw: 0, points: 1, label: '' }, pl, {
       questions: (pl.questions || []).map(q => Object.assign(BQ.normalizeQuestion(q), { key: q.key || PT.forms.questionKey(q), excluded: !!q.excluded, distractors: q.distractors || [] }))
     }));
+    PT.forms.tidySections(out.pools);
     out.forms = Array.isArray(p.forms) ? p.forms : [];
     out.usage = Array.isArray(p.usage) ? p.usage : [];
     out.images = p.images || {};
@@ -154,7 +155,7 @@
   function renderStepper() {
     const done = {
       import: project.pools.length > 0,
-      blueprint: project.pools.some(p => p.draw > 0),
+      blueprint: PT.forms.sectionsOf(project.pools).some(s => s.draw > 0),
       generate: project.forms.length > 0,
       review: project.forms.length > 0,
       export: project.forms.some(f => f.recordedAt)
@@ -198,7 +199,16 @@
 
   function removePool(p) {
     confirmBox('Remove “' + p.title + '”?', 'Its questions leave the blueprint. Forms already generated keep their own copies.', 'Remove', () => {
+      // a section's first pool carries its settings: hand them to the next pool in it
+      const members = project.pools.filter(x => x.joinedTo === p.id);
+      if (members.length) {
+        const heir = members[0];
+        delete heir.joinedTo;
+        Object.assign(heir, { draw: p.draw, points: p.points, label: p.label });
+        members.slice(1).forEach(m => { m.joinedTo = heir.id; });
+      }
       project.pools = project.pools.filter(x => x !== p);
+      PT.forms.tidySections(project.pools);
       project.rev++;
       save(); renderImport(); renderStepper();
     }, true);
@@ -295,12 +305,17 @@
       const e = project.exam;
       if (!e.title && !e.course) {
         Object.assign(e, { course: 'MGMT 2080 · Introduction to Information Systems', title: 'Midterm Exam (Make-up)', timeLimit: 75, instructions: 'Answer **every** question. You may use one cheat sheet (letter size, one or both sides) and a calculator.' });
+        // SQL basics and Joins are combined into one section: 8 questions from both banks
         const plan = [
-          [5, 2, 'Outcome 1: Write basic SQL queries'], [3, 2, 'Outcome 2: Combine and summarize tables'],
-          [6, 2, 'Outcome 3: Explain information systems and databases'], [5, 2, 'Outcome 4: Model business processes'],
-          [6, 2, 'Outcome 5: Plan systems development projects'], [2, 5, 'Outcome 6: Apply MIS concepts']
+          [8, 2, 'Outcome 1: Write and combine SQL queries'], null,
+          [6, 2, 'Outcome 2: Explain information systems and databases'], [5, 2, 'Outcome 3: Model business processes'],
+          [6, 2, 'Outcome 4: Plan systems development projects'], [2, 5, 'Outcome 5: Apply MIS concepts']
         ];
-        project.pools.slice(-plan.length).forEach((p, i) => { p.draw = plan[i][0]; p.points = plan[i][1]; p.label = plan[i][2]; });
+        const mine = project.pools.slice(-plan.length);
+        mine.forEach((p, i) => {
+          if (plan[i]) { p.draw = plan[i][0]; p.points = plan[i][1]; p.label = plan[i][2]; } else { p.joinedTo = mine[i - 1].id; p.draw = 0; p.points = 2; p.label = ''; }
+        });
+        PT.forms.tidySections(project.pools);
         save();
       }
     } catch (err) {
@@ -338,35 +353,107 @@
   }
   function syncEndReset() { $('#btn-endtext-reset').hidden = project.exam.endText == null; }
 
+  const usableCount = (p) => p.questions.filter(q => !q.excluded).length;
+  /** Sections of the blueprint, counting only questions that can be drawn. */
+  function blueprintSections() { return PT.forms.sectionsOf(drawablePools()); }
+
+  /** Join pool p (and any pools joined to it) to the section just above it. */
+  function combineWithAbove(p) {
+    const secs = PT.forms.sectionsOf(project.pools);
+    const i = secs.findIndex(s => s.lead === p);
+    if (i < 1) return;
+    const above = secs[i - 1], mine = secs[i];
+    const lead = above.lead;
+    mine.pools.forEach(x => { x.joinedTo = lead.id; });
+    lead.draw = (Number(lead.draw) || 0) + (Number(p.draw) || 0);
+    const pointsDiffer = Number(p.points) !== Number(lead.points) && p.draw > 0;
+    project.rev++;
+    save(); renderBlueprint(); renderStepper();
+    toast('Combined into “' + PT.forms.sectionName(PT.forms.sectionOfPool(project.pools, lead.id)) + '”. One draw now comes from ' + plural(above.pools.length + mine.pools.length, 'bank') + ' together' + (pointsDiffer ? ', at ' + lead.points + ' points each.' : '.'));
+  }
+  /** Take pool p out of its section; it becomes a section of its own, right after. */
+  function separate(p) {
+    const sec = PT.forms.sectionOfPool(project.pools, p.id);
+    if (!sec || sec.lead === p) return;
+    // p takes back its share of the section's draw, so the exam keeps its length
+    const dsec = PT.forms.sectionOfPool(drawablePools(), p.id);
+    const share = dsec ? PT.forms.sectionMix(dsec)[dsec.pools.findIndex(x => x.id === p.id)] || 0 : 0;
+    delete p.joinedTo;
+    p.draw = share; p.points = sec.points; p.label = '';
+    sec.lead.draw = Math.max(0, (Number(sec.lead.draw) || 0) - share);
+    // keep the section's members together: move p after the section's last pool
+    project.pools = project.pools.filter(x => x !== p);
+    const last = sec.pools.filter(x => x !== p).pop();
+    project.pools.splice(project.pools.indexOf(last) + 1, 0, p);
+    const left = PT.forms.sectionOfPool(drawablePools(), sec.id);
+    if (left) sec.lead.draw = Math.min(Number(sec.lead.draw) || 0, left.size);
+    project.rev++;
+    save(); renderBlueprint(); renderStepper();
+    toast('“' + p.title + '” is its own section again, drawing ' + plural(share, 'question') + ' (its share of the section).');
+  }
+  function moveSection(i, d) {
+    const secs = PT.forms.sectionsOf(project.pools);
+    const j = i + d;
+    if (j < 0 || j >= secs.length) return;
+    [secs[i], secs[j]] = [secs[j], secs[i]];
+    project.pools = secs.flatMap(s => s.pools);
+    project.rev++; save(); renderBlueprint();
+  }
+
   function renderBlueprint() {
     bindExam();
     const t = $('#slots');
-    const usable = (p) => p.questions.filter(q => !q.excluded).length;
-    const head = h('thead', null, h('tr', null, ['Order', 'Pool', 'Outcome label (optional)', 'Draw', 'Points each', 'Subtotal', ''].map(x => h('th', null, x))));
+    const head = h('thead', null, h('tr', null, ['Order', 'Pool', 'Section / outcome label', 'Draw', 'Points each', 'Subtotal', ''].map(x => h('th', null, x))));
     const body = h('tbody');
-    project.pools.forEach((p, i) => {
-      const n = usable(p);
-      const drawIn = h('input', { class: 'num', type: 'number', min: 0, max: n, value: p.draw, 'aria-label': 'Questions to draw from ' + p.title });
-      const ptsIn = h('input', { class: 'num', type: 'number', min: 0, step: 0.5, value: p.points, 'aria-label': 'Points per question for ' + p.title });
-      const labelIn = h('input', { value: p.label || '', placeholder: p.title });
-      const sub = h('td', { text: String((Math.min(p.draw, n) || 0) * (Number(p.points) || 0)) });
-      const change = () => {
-        p.draw = Math.max(0, Math.min(n, parseInt(drawIn.value, 10) || 0));
-        p.points = Math.max(0, Number(ptsIn.value) || 0);
-        p.label = labelIn.value;
-        sub.textContent = String(p.draw * p.points);
-        project.rev++;
-        save(); renderTotals(); renderStepper();
-      };
-      drawIn.onchange = change; ptsIn.onchange = change; labelIn.oninput = change;
-      const move = (d) => () => { const j = i + d; if (j < 0 || j >= project.pools.length) return; [project.pools[i], project.pools[j]] = [project.pools[j], project.pools[i]]; project.rev++; save(); renderBlueprint(); };
-      body.append(h('tr', null,
-        h('td', { class: 'order' }, h('button', { type: 'button', title: 'Move up', 'aria-label': 'Move up', onclick: move(-1), disabled: i === 0 }, '↑'), ' ', h('button', { type: 'button', title: 'Move down', 'aria-label': 'Move down', onclick: move(1), disabled: i === project.pools.length - 1 }, '↓')),
-        h('td', { class: 'pool-name' }, h('b', null, p.title), h('div', { class: 'sub' }, n + ' available' + (n < p.questions.length ? ' (' + (p.questions.length - n) + ' left out)' : '')), h('div', { class: 'chips' }, typeChips(p.questions.filter(q => !q.excluded)))),
-        h('td', null, labelIn), h('td', null, h('span', { class: 'draw-cell' }, drawIn, h('span', { class: 'sub' }, 'of ' + n))), h('td', null, ptsIn), sub,
-        h('td', null, h('button', { type: 'button', class: 'small', onclick: () => { ui.browse[p.id] = !ui.browse[p.id]; renderBlueprint(); } }, ui.browse[p.id] ? 'Hide questions' : 'Questions'))
-      ));
-      if (ui.browse[p.id]) body.append(h('tr', null, h('td', { colspan: 7 }, browseList(p))));
+    const secs = blueprintSections();
+    const browse = [];
+    secs.forEach((sec, si) => {
+      const multi = sec.pools.length > 1;
+      sec.pools.forEach((dp, pi) => {
+        const p = project.pools.find(x => x.id === dp.id);
+        const n = usableCount(p);
+        const isLead = pi === 0;
+        const last = pi === sec.pools.length - 1;
+        const cls = ['slot-row', multi ? 'in-section' : '', multi && isLead ? 'sec-first' : '', multi && !isLead ? 'sec-member' : '', multi && last ? 'sec-last' : ''].filter(Boolean).join(' ');
+        const nameCell = h('td', { class: 'pool-name' }, h('b', null, p.title),
+          h('div', { class: 'sub' }, n + ' available' + (n < p.questions.length ? ' (' + (p.questions.length - n) + ' left out)' : '')),
+          h('div', { class: 'chips' }, typeChips(p.questions.filter(q => !q.excluded))));
+        const browseBtn = h('button', { type: 'button', class: 'small', onclick: () => { ui.browse[p.id] = !ui.browse[p.id]; renderBlueprint(); } }, ui.browse[p.id] ? 'Hide questions' : 'Questions');
+        let row;
+        if (isLead) {
+          const N = sec.size;
+          const drawIn = h('input', { class: 'num', type: 'number', min: 0, max: N, value: p.draw, 'aria-label': 'Questions to draw from ' + (multi ? 'the section ' + PT.forms.sectionName(sec) : p.title) });
+          const ptsIn = h('input', { class: 'num', type: 'number', min: 0, step: 0.5, value: p.points, 'aria-label': 'Points per question for ' + (multi ? 'the section ' + PT.forms.sectionName(sec) : p.title) });
+          const labelIn = h('input', { value: p.label || '', placeholder: multi ? sec.pools.map(x => x.title).join(' + ') : p.title, 'aria-label': 'Label for ' + (multi ? 'the section starting with ' : '') + p.title });
+          const sub = h('td', { class: 'subtotal', text: String((Math.min(p.draw, N) || 0) * (Number(p.points) || 0)) });
+          const change = () => {
+            p.draw = Math.max(0, Math.min(N, parseInt(drawIn.value, 10) || 0));
+            p.points = Math.max(0, Number(ptsIn.value) || 0);
+            p.label = labelIn.value;
+            sub.textContent = String(p.draw * p.points);
+            project.rev++;
+            save(); renderTotals(); renderStepper();
+            if (multi && mixNote) mixNote.textContent = mixText(PT.forms.sectionOfPool(drawablePools(), p.id));
+          };
+          drawIn.onchange = change; ptsIn.onchange = change; labelIn.oninput = change;
+          const mixNote = multi ? h('div', { class: 'sub mix-note', text: mixText(sec) }) : null;
+          const span = multi ? { rowspan: sec.pools.length } : {};
+          row = h('tr', { class: cls },
+            h('td', Object.assign({ class: 'order' }, span), h('button', { type: 'button', title: multi ? 'Move this section up' : 'Move up', 'aria-label': 'Move up', onclick: () => moveSection(si, -1), disabled: si === 0 }, '↑'), ' ', h('button', { type: 'button', title: multi ? 'Move this section down' : 'Move down', 'aria-label': 'Move down', onclick: () => moveSection(si, 1), disabled: si === secs.length - 1 }, '↓')),
+            nameCell,
+            h('td', Object.assign({ class: 'sec-label' }, span), labelIn, multi ? h('div', { class: 'sub sec-tag', text: 'Section · ' + plural(sec.pools.length, 'bank') + ' combined' }) : null),
+            h('td', Object.assign({ class: 'sec-draw' }, span), h('span', { class: 'draw-cell' }, drawIn, h('span', { class: 'sub' }, 'of ' + N)), mixNote),
+            h('td', span, ptsIn), Object.assign(sub, span.rowspan ? { rowSpan: span.rowspan } : {}),
+            h('td', { class: 'row-actions' }, browseBtn, si > 0 ? h('button', { type: 'button', class: 'small', title: 'Draw from this bank and the section above it together, under one label, draw count and points', onclick: () => combineWithAbove(p) }, 'Combine with above') : null));
+        } else {
+          row = h('tr', { class: cls }, nameCell,
+            h('td', { class: 'row-actions' }, browseBtn, h('button', { type: 'button', class: 'small', title: 'Take this bank out of the section; it gets its own draw count again', onclick: () => separate(p) }, 'Separate')));
+        }
+        body.append(row);
+        // question lists go after the whole section, so the shared cells still span its rows
+        if (ui.browse[p.id]) browse.push(h('tr', { class: 'browse-row' }, h('td', { colspan: 7 }, multi ? h('div', { class: 'sub browse-title', text: p.title }) : null, browseList(p))));
+      });
+      body.append(...browse.splice(0));
     });
     const foot = h('tfoot', null, h('tr', null, h('td'), h('td', { text: 'Total' }), h('td'), h('td', { id: 'tot-q' }), h('td'), h('td', { id: 'tot-p' }), h('td')));
     t.replaceChildren(head, body, foot);
@@ -374,13 +461,21 @@
     renderTotals();
   }
 
+  /** "Every form: 4 from SQL basics, 4 from Joins" */
+  function mixText(sec) {
+    if (!sec) return '';
+    const mix = PT.forms.sectionMix(sec);
+    if (!mix.some(Boolean)) return 'Drawn from the banks together.';
+    return 'Every form: ' + sec.pools.map((p, i) => mix[i] + ' from ' + p.title).join(', ') + '.';
+  }
+
   function renderTotals() {
-    const s = PT.forms.blueprintSummary(project.pools.map(p => ({ draw: p.draw, points: p.points, questions: p.questions.filter(q => !q.excluded) })));
+    const s = PT.forms.blueprintSummary(drawablePools());
     if ($('#tot-q')) $('#tot-q').textContent = s.questions;
     if ($('#tot-p')) $('#tot-p').textContent = s.points;
     const w = $('#blueprint-warnings');
     const notes = [];
-    if (project.pools.length && !s.questions) notes.push(h('div', { class: 'notice warn', text: 'Set how many questions to draw from each pool. In Blackboard this is the “questions to display” number for each pool in the test.' }));
+    if (project.pools.length && !s.questions) notes.push(h('div', { class: 'notice warn', text: 'Set how many questions to draw from each pool. In Blackboard this is the “questions to display” number for each pool in the test. To draw from several banks together, use Combine with above.' }));
     project.pools.forEach(p => {
       const bad = p.questions.filter(q => q.excluded && BQ.validate(q, { images: project.images }).errors.length).length;
       if (bad) notes.push(h('div', { class: 'notice bad', text: '“' + p.title + '”: ' + plural(bad, 'question has', 'questions have') + ' a problem (for example no correct answer marked) and will not be drawn. Open Questions to fix them.' }));
@@ -437,7 +532,7 @@
     $('#btn-reseed').onclick = () => { g.seed = PT.forms.newSeed(); $('#gen-seed').value = g.seed; save(); };
     bindSettingChecks(['shuffleQuestions', 'mixSections', 'shuffleOptions']);
     $('#btn-generate').onclick = () => {
-      if (!project.pools.some(p => p.draw > 0)) { toast('Set draw counts in the Blueprint first.'); return; }
+      if (!PT.forms.sectionsOf(project.pools).some(s => s.draw > 0)) { toast('Set draw counts in the Blueprint first.'); return; }
       const printed = project.forms.filter(f => f.recordedAt).length;
       if (project.forms.length) {
         confirmBox('Replace the current forms?', 'The ' + plural(project.forms.length, 'form') + ' you have now will be replaced, including any edits.' + (printed ? ' Forms already exported stay in the usage history.' : ''), 'Replace', doGenerate);
@@ -467,11 +562,17 @@
 
   function renderPlanNote() {
     const X = project.gen.count;
-    const notes = drawablePools().filter(p => p.draw > 0).map(p => {
-      const n = p.questions.length, d = Math.min(p.draw, n), need = X * d;
-      if (need <= n) return h('div', null, '✓ ', h('b', null, p.label || p.title), ': ' + X + ' × ' + d + ' = ' + need + ' of ' + n + ' questions, so forms share none.');
+    const line = (n, d, name, lead) => {
+      const need = X * d;
+      if (need <= n) return h('div', null, '✓ ', lead ? h('b', null, name) : name, ': ' + X + ' × ' + d + ' = ' + need + ' of ' + n + ' questions, so forms share none.');
       const lo = Math.floor(need / n), hi = Math.ceil(need / n);
-      return h('div', null, '• ', h('b', null, p.label || p.title), ': needs ' + need + ' draws from ' + n + ' questions, so each is used ' + (lo === hi ? lo : lo + '–' + hi) + ' times and forms will share some.');
+      return h('div', null, '• ', lead ? h('b', null, name) : name, ': needs ' + need + ' draws from ' + n + ' questions, so each is used ' + (lo === hi ? lo : lo + '–' + hi) + ' times and forms will share some.');
+    };
+    const notes = blueprintSections().filter(s => s.draw > 0).map(sec => {
+      if (sec.pools.length === 1) return line(sec.size, Math.min(sec.draw, sec.size), PT.forms.sectionName(sec), true);
+      const mix = PT.forms.sectionMix(sec);
+      return h('div', null, h('div', null, '▸ ', h('b', null, PT.forms.sectionName(sec)), ': ' + Math.min(sec.draw, sec.size) + ' per form from ' + plural(sec.pools.length, 'bank') + ' combined, the same mix on every form.'),
+        h('div', { class: 'sec-lines' }, sec.pools.map((p, i) => mix[i] ? line(p.questions.length, mix[i], p.title, false) : h('div', null, '– ' + p.title + ': none on this draw (too small a share).'))));
     });
     $('#gen-status').replaceChildren(...(notes.length ? [h('div', { class: 'pool-notes' }, notes)] : []));
   }
@@ -599,7 +700,8 @@
     function refresh() {
       if (draft.type === 'FIB_PLUS') BQ.syncBlanks(draft);
       rebuildRightColumn(draft);
-      const fakeItem = { id: 'preview', q: draft, points: points == null ? (pool ? pool.points : 1) : points, lines: lines ? Number(lines) : null };
+      const secPts = pool ? (PT.forms.sectionOfPool(project.pools, pool.id) || { points: pool.points }).points : 1;
+      const fakeItem = { id: 'preview', q: draft, points: points == null ? secPts : points, lines: lines ? Number(lines) : null };
       const b = PT.paper.questionBlock(fakeItem, onForm ? ctx.form.items.indexOf(ctx.item) + 1 : 1, project, screenCtx());
       preview.innerHTML = PT.paper.toHtml({ kind: 'booklet', blocks: [b], settings: Object.assign({}, project.settings, { largePrint: false }) });
       const v = BQ.validate(draft, { images: project.images });
@@ -806,7 +908,11 @@
           toast('Swapped. ' + (c.others.length ? 'This question is also on form ' + c.others.join(', ') + '.' : 'No other form has this question.'));
         } }, 'Use this'));
     }));
-    openModal('Swap question ' + (form.items.indexOf(item) + 1) + ' on Form ' + form.code + ' · ' + (pool.label || pool.title), [h('p', { class: 'muted', text: 'Questions from the same pool. Those on no other form, and used least, are listed first.' }), list], [{ label: 'Close', onclick: closeModal }]);
+    const sec = PT.forms.sectionOfPool(project.pools, pool.id);
+    const combined = sec && sec.pools.length > 1;
+    openModal('Swap question ' + (form.items.indexOf(item) + 1) + ' on Form ' + form.code + ' · ' + (combined ? PT.forms.sectionName(sec) + ' · ' + pool.title : (pool.label || pool.title)), [h('p', { class: 'muted', text: combined
+      ? 'Questions from the same bank, “' + pool.title + '”, so every form keeps the same mix of banks in this section. Those on no other form, and used least, are listed first.'
+      : 'Questions from the same pool. Those on no other form, and used least, are listed first.' }), list], [{ label: 'Close', onclick: closeModal }]);
   }
 
   /* =================================================================

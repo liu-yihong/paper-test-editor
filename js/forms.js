@@ -6,6 +6,9 @@
  *    otherwise every question is used ⌊k⌋ or ⌈k⌉ times and pairwise overlap is kept low.
  *  - Prefers questions used least often, then least recently (usage history).
  *  - Shuffles question order and answer choices, keeping "All/None of the above" in place.
+ *  - Sections: pools joined under one outcome share a draw count and points. The draw
+ *    comes from the banks combined; every form gets the same mix of banks, in
+ *    proportion to their sizes (what a plain draw from the merged set gives on average).
  */
 (function () {
   'use strict';
@@ -184,19 +187,88 @@
     return { perForm: sets.map(s => shuffle(Array.from(s), rng)), note: 'shared' };
   }
 
+  /* ---------- sections (pools combined under one outcome) ---------- */
+  /**
+   * A pool with joinedTo = <lead pool id> belongs to the lead's section; the lead's
+   * draw, points and label apply to the whole section. Members follow their lead.
+   * Returns [{ id, lead, label, title, draw, points, pools, size }].
+   */
+  function sectionsOf(pools) {
+    const out = [];
+    const byId = new Map();
+    (pools || []).forEach(p => {
+      const sec = p.joinedTo && byId.get(p.joinedTo);
+      if (sec) { sec.pools.push(p); return; }
+      const s = { id: p.id, lead: p, label: p.label || '', title: p.title, draw: Number(p.draw) || 0, points: Number(p.points) || 0, pools: [p] };
+      byId.set(p.id, s);
+      out.push(s);
+    });
+    out.forEach(s => { s.size = s.pools.reduce((a, p) => a + p.questions.length, 0); });
+    return out;
+  }
+  /** The name printed for a section: its label, else its bank titles. */
+  function sectionName(sec) {
+    if (!sec) return '';
+    return sec.label || sec.pools.map(p => p.title).join(' + ');
+  }
+  /** The section a pool belongs to. */
+  function sectionOfPool(pools, poolId) {
+    return sectionsOf(pools).find(s => s.pools.some(p => p.id === poolId)) || null;
+  }
+  /**
+   * Put every member right after its lead and drop links that no longer hold
+   * (lead removed, or a lead that is itself joined). Changes the array in place.
+   */
+  function tidySections(pools) {
+    const byId = new Map(pools.map(p => [p.id, p]));
+    // follow chains (a joined to b joined to c) to the first pool; drop broken links and loops
+    const root = new Map();
+    pools.forEach(p => {
+      let cur = p;
+      const seen = new Set();
+      while (cur.joinedTo && byId.has(cur.joinedTo) && !seen.has(cur.id)) { seen.add(cur.id); cur = byId.get(cur.joinedTo); }
+      root.set(p, seen.has(cur.id) ? p : cur);
+    });
+    pools.forEach(p => { const r = root.get(p); if (r === p) delete p.joinedTo; else p.joinedTo = r.id; });
+    const leads = pools.filter(p => !p.joinedTo);
+    const ordered = [];
+    leads.forEach(l => { ordered.push(l); pools.forEach(p => { if (p.joinedTo === l.id) ordered.push(p); }); });
+    pools.splice(0, pools.length, ...ordered);
+    return pools;
+  }
+  /**
+   * How many questions each bank of a section gives every form: largest remainder
+   * on bank sizes, ties to the bigger bank, then the earlier one. Deterministic, so
+   * the Generate step can preview it and every form gets the same mix.
+   */
+  function sectionMix(sec) {
+    const N = sec.size;
+    const d = Math.min(sec.draw || 0, N);
+    if (!d) return sec.pools.map(() => 0);
+    if (sec.pools.length === 1) return [d];
+    const exact = sec.pools.map(p => d * p.questions.length / N);
+    const k = exact.map(Math.floor);
+    let left = d - k.reduce((a, b) => a + b, 0);
+    exact.map((e, i) => ({ i, r: e - k[i], n: sec.pools[i].questions.length }))
+      .sort((a, b) => b.r - a.r || b.n - a.n || a.i - b.i)
+      .forEach(x => { if (left > 0 && k[x.i] < x.n) { k[x.i]++; left--; } });
+    return k;
+  }
+
   const CODES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   function formCode(i) { return i < 26 ? CODES[i] : CODES[Math.floor(i / 26) - 1] + CODES[i % 26]; }
 
-  /** One printable item from a pool question. */
-  function makeItem(pool, q, rng, settings) {
-    return { id: BQ.uid(), poolId: pool.id, key: q.key, points: Number(pool.points) || 1, q: perturb(q, rng, settings), lines: null };
+  /** One printable item from a pool question; points come from its section. */
+  function makeItem(pool, q, rng, settings, sec) {
+    const pts = sec ? sec.points : pool.points;
+    return { id: BQ.uid(), poolId: pool.id, sectionId: sec ? sec.id : pool.id, key: q.key, points: Number(pts) || 1, q: perturb(q, rng, settings), lines: null };
   }
 
-  function orderItems(items, pools, rng, settings) {
+  function orderItems(items, sections, rng, settings) {
     if (settings.mixSections) return shuffle(items, rng);
     const out = [];
-    pools.forEach(p => {
-      const mine = items.filter(it => it.poolId === p.id);
+    sections.forEach(sec => {
+      const mine = items.filter(it => it.sectionId === sec.id);
       out.push(...(settings.shuffleQuestions === false ? mine : shuffle(mine, rng)));
     });
     return out;
@@ -204,16 +276,23 @@
 
   /**
    * Generate X forms.
-   * project: { pools: [{ id, title, questions:[{key,…}], draw, points, label }], usage, settings }
+   * project: { pools: [{ id, title, questions:[{key,…}], draw, points, label, joinedTo? }], usage, settings }
    * Returns { forms, overlap, notes }.
    */
   function generate(project, X, seed, startIndex) {
     const settings = project.settings || {};
     const stats = usageStats(project.usage);
     const rng = rngFrom(seed + '|draw');
-    const pools = project.pools.filter(p => p.draw > 0 && p.questions.length);
+    const sections = sectionsOf(project.pools).filter(s => s.draw > 0 && s.size);
     const globalPair = Array.from({ length: X }, () => new Array(X).fill(0));
-    const draws = pools.map(p => ({ pool: p, ...drawPool(p, X, stats, rng, globalPair) }));
+    const draws = [];
+    sections.forEach(sec => {
+      const mix = sectionMix(sec);
+      sec.pools.forEach((p, j) => {
+        if (!mix[j]) return;
+        draws.push({ pool: p, sec, ...drawPool(Object.assign({}, p, { draw: mix[j] }), X, stats, rng, globalPair) });
+      });
+    });
     const forms = [];
     for (let i = 0; i < X; i++) {
       const code = formCode((startIndex || 0) + i);
@@ -221,9 +300,9 @@
       const items = [];
       draws.forEach(dr => dr.perForm[i].forEach(key => {
         const q = dr.pool.questions.find(x => x.key === key);
-        if (q) items.push(makeItem(dr.pool, q, frng, settings));
+        if (q) items.push(makeItem(dr.pool, q, frng, settings, dr.sec));
       }));
-      forms.push({ id: BQ.uid(), code, seed, createdAt: new Date().toISOString(), items: orderItems(items, pools, frng, settings) });
+      forms.push({ id: BQ.uid(), code, seed, createdAt: new Date().toISOString(), items: orderItems(items, sections, frng, settings) });
     }
     return { forms, overlap: overlapMatrix(forms), notes: draws.map(d => ({ poolId: d.pool.id, note: d.note })) };
   }
@@ -243,6 +322,7 @@
     const rng = rngFrom(form.seed + '|swap|' + newKey + '|' + Date.now());
     const it = makeItem(pool, q, rng, project.settings || {});
     it.points = old.points;
+    it.sectionId = old.sectionId || old.poolId;
     form.items[idx] = it;
     return it;
   }
@@ -253,9 +333,9 @@
   }
   function blueprintSummary(pools) {
     let n = 0, pts = 0;
-    pools.forEach(p => { const d = Math.min(p.draw || 0, p.questions.length); n += d; pts += d * (Number(p.points) || 0); });
+    sectionsOf(pools).forEach(s => { const d = Math.min(s.draw || 0, s.size); n += d; pts += d * (Number(s.points) || 0); });
     return { questions: n, points: pts };
   }
 
-  PT.forms = { rngFrom, shuffle, newSeed, questionKey, usageStats, perturb, choicesShuffleable, shuffleChoices, generate, overlapMatrix, swapItem, formCode, totalPoints, blueprintSummary, ANCHOR_RE };
+  PT.forms = { sectionsOf, sectionName, sectionOfPool, tidySections, sectionMix, rngFrom, shuffle, newSeed, questionKey, usageStats, perturb, choicesShuffleable, shuffleChoices, generate, overlapMatrix, swapItem, formCode, totalPoints, blueprintSummary, ANCHOR_RE };
 })();

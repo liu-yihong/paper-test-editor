@@ -164,6 +164,18 @@ table.slots { width: 100%; border-collapse: collapse; }
 .slots .sub { font-size: .8rem; color: var(--muted); }
 /* "of N" sits beside the Draw input, so every control in the row centres on one line */
 .slots .draw-cell { display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; }
+/* sections: banks combined under one label, draw count and points.
+   A bar down the bank names ties the rows together; the shared cells span them. */
+.slots .row-actions { white-space: nowrap; }
+.slots .row-actions button + button { margin-left: .35rem; }
+.slots tr.in-section .pool-name { border-left: 3px solid var(--accent); }
+.slots tr.sec-first:not(.sec-last) .pool-name, .slots tr.sec-member:not(.sec-last) .pool-name,
+.slots tr.sec-first:not(.sec-last) .row-actions, .slots tr.sec-member:not(.sec-last) .row-actions { border-bottom-style: dashed; }
+.slots .sec-label, .slots .sec-draw { vertical-align: middle; }
+.slots .sec-tag { margin-top: .3rem; }
+.slots .mix-note { margin-top: .3rem; max-width: 14rem; white-space: normal; }
+.slots .browse-title { margin-bottom: .3rem; font-weight: 600; }
+.pool-notes .sec-lines { margin: .15rem 0 .35rem 1.2rem; }
 .notice { border-radius: 8px; padding: .55rem .8rem; margin-top: .6rem; font-size: .9rem; display: flex; gap: .55rem; align-items: baseline; }
 /* a symbol first, so the kind of notice never depends on colour alone (and works in 1-bit styles) */
 .notice::before { flex: none; width: 1.1em; text-align: center; font-weight: 700; }

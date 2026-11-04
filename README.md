@@ -22,6 +22,7 @@ Questions, forms and usage history stay in your browser. The page never sends th
 
 - **Import** Blackboard question bank `.zip` files (pool or test exports, as written by Blackboard or the Question Editor) and Question Editor `.bbq.json` projects. Each bank becomes a pool, with its question count and type mix.
 - **Blueprint**: order the pools and set, for each one, how many questions to draw, the points per question and an optional outcome label. A warning shows when a pool is too small for its draw count.
+- **Sections**: combine several banks under one outcome with *Combine with above*. A section has one label, draw count and points. Its questions come from the banks together, and every form gets the same mix of banks, in proportion to their sizes (what a plain draw from the merged set gives on average). A section prints as one part. *Separate* takes a bank back out, with its share of the draw.
 - **Generate several forms at once** (A, B, C …) with as little overlap as possible:
   - When a pool is large enough, forms share no questions from it.
   - Otherwise each question is used about equally often, and shared questions are spread evenly across pairs of forms.
@@ -44,7 +45,7 @@ Questions, forms and usage history stay in your browser. The page never sends th
 ## How you can use it
 
 1. **Import banks.** In Blackboard, export the online exam's question banks (or use the `.zip` files from the Question Editor) and drop them onto the page.
-2. **Blueprint.** Match the online exam: draw count and points for each pool, the time limit, instructions and closing line.
+2. **Blueprint.** Match the online exam: draw count and points for each pool (or for a section of combined pools), the time limit, instructions and closing line.
 3. **Generate.** Choose how many forms you need and check the overlap table.
 4. **Review.** Read each form in the preview, and swap or edit any question.
 5. **Export.** Print the booklet, answer sheet and key to PDF, or download them as Word files. Printing records which questions were used, so the next make-up draws different ones.
