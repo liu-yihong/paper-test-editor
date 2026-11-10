@@ -46,16 +46,39 @@
   const sline = (kind, ...kids) => h('div', { class: 'sline' }, sign(kind), h('div', null, ...kids));
 
   // icon (optional): 'warn', 'err' or 'info' puts a large sign beside the message, as in a classic message box
+  // The control that opened the dialog, so focus can go back to it when the dialog closes.
+  // Review buttons are redrawn while a dialog is open, so their question and action are kept too.
+  let modalOpener = null;
   function openModal(title, body, actions, icon) {
+    if ($('#modal').hidden) {
+      const el = document.activeElement;
+      modalOpener = el && el !== document.body ? { el, act: el.dataset && el.dataset.act, item: el.parentNode && el.parentNode.dataset && el.parentNode.dataset.item } : null;
+    }
     $('#modal-title').textContent = title;
     const kids = [].concat(body).filter(Boolean);
     $('#modal-body').replaceChildren(...(icon ? [h('div', { class: 'modal-msg' }, sign(icon), h('div', { class: 'modal-msg-body' }, ...kids))] : kids));
     $('#modal-actions').replaceChildren(...(actions || []).map(a => h('button', { type: 'button', class: a.primary ? 'primary' : a.danger ? 'danger' : '', onclick: a.onclick }, a.label)));
     $('#modal').hidden = false;
-    const f = $('#modal-body .wy-area, #modal-body input:not([type=radio]):not([type=checkbox]), #modal-body textarea, #modal-actions button.primary');
-    if (f) setTimeout(() => f.focus(), 30);
+    $('#app').inert = true; // the page behind the dialog can't be reached until it closes
+    const f = $('#modal-body .wy-area, #modal-body input:not([type=radio]):not([type=checkbox]), #modal-body textarea, #modal-actions button.primary') || $('#modal-x');
+    setTimeout(() => f.focus(), 30);
   }
-  function closeModal() { $('#modal').hidden = true; $('#modal-body').replaceChildren(); $('#modal .modal-box').classList.remove('wide'); }
+  function closeModal() {
+    const wasOpen = !$('#modal').hidden;
+    $('#modal').hidden = true; $('#modal-body').replaceChildren(); $('#modal .modal-box').classList.remove('wide');
+    $('#app').inert = false;
+    if (!wasOpen) return;
+    const o = modalOpener; modalOpener = null;
+    // after the caller has redrawn the page
+    setTimeout(() => {
+      if (!$('#modal').hidden) return; // another dialog opened straight away
+      const visible = (el) => el && el.isConnected && el.getClientRects().length > 0;
+      let target = o && o.el;
+      if (!visible(target) && o && o.act && o.item) target = $('.pp-tools[data-item="' + o.item + '"] button[data-act="' + o.act + '"]');
+      if (!visible(target)) target = stepHeading(ui.step);
+      if (target) target.focus({ preventScroll: true });
+    }, 0);
+  }
   function confirmBox(title, text, okLabel, onOk, danger) {
     openModal(title, h('p', null, text), [{ label: 'Cancel', onclick: closeModal }, { label: okLabel, primary: !danger, danger, onclick: () => { closeModal(); onOk(); } }], 'warn');
   }
@@ -150,6 +173,13 @@
   }
 
   /* ---------- steps ---------- */
+  // The step's heading takes focus after Next or Back, so screen readers announce the new step
+  // and Tab carries on from the top of it.
+  function stepHeading(step) {
+    const hd = $('.step[data-panel="' + step + '"] h2');
+    if (hd) hd.tabIndex = -1;
+    return hd;
+  }
   function go(step, opts) {
     ui.step = STEPS.includes(step) ? step : 'import';
     $$('.step').forEach(s => s.classList.toggle('active', s.dataset.panel === ui.step));
@@ -158,6 +188,7 @@
     // Not on the first render: the page is already at the top, and scrolling right after the DOM
     // changes forces an extra layout while the page is loading.
     if (!(opts && opts.initial)) window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (opts && opts.focus) { const hd = stepHeading(ui.step); if (hd) hd.focus({ preventScroll: true }); }
   }
   function renderStepper() {
     const done = {
@@ -603,7 +634,7 @@
       h('p', { class: 'muted', text: 'Each cell counts the questions two forms share; the diagonal is the form’s length.' }),
       overlapTable(project.forms),
       stale ? h('div', { class: 'notice warn', text: 'The blueprint changed after these forms were generated. Generate again to apply it, or keep these forms as they are.' }) : null,
-      h('div', { class: 'btn-row' }, h('button', { type: 'button', class: 'primary', onclick: () => go('review') }, 'Review forms →'))));
+      h('div', { class: 'btn-row' }, h('button', { type: 'button', class: 'primary', onclick: () => go('review', { focus: true }) }, 'Review forms →'))));
   }
 
   function renderHistory() {
@@ -660,10 +691,10 @@
     // overlap with the other forms
     const keys = new Set(form.items.map(it => it.key));
     const others = project.forms.filter(f => f !== form).map(f => ({ code: f.code, n: f.items.filter(it => keys.has(it.key)).length }));
-    $('#overlap-mini').replaceChildren(h('h4', null, 'Form ' + form.code),
+    $('#overlap-mini').replaceChildren(h('h3', null, 'Form ' + form.code),
       h('div', null, plural(form.items.length, 'question') + ' · ' + PT.forms.totalPoints(form) + ' points'),
       ...others.map(o => o.n ? sline('warn', 'Shares ' + plural(o.n, 'question') + ' with ' + o.code) : sline('ok', 'Shares nothing with ' + o.code)),
-      ...(ui.doc === 'booklet' ? [h('p', { class: 'field-note', text: 'Hover a question to edit it or swap it for another from its pool.' })] : []));
+      ...(ui.doc === 'booklet' ? [h('p', { class: 'field-note', text: 'Point at a question, or Tab to it, to edit it or swap it for another from its pool.' })] : []));
   }
 
   /* ---------- question editor ---------- */
@@ -1061,7 +1092,7 @@
      ================================================================= */
   function wire() {
     $$('#stepper button').forEach(b => { b.onclick = () => go(b.dataset.step); });
-    $$('[data-goto]').forEach(b => { b.onclick = () => go(b.dataset.goto); });
+    $$('[data-goto]').forEach(b => { b.onclick = () => go(b.dataset.goto, { focus: true }); });
     const drop = $('#drop');
     $('#file-banks').onchange = (e) => { importFiles(Array.from(e.target.files)); e.target.value = ''; };
     ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, (e) => { e.preventDefault(); if (ui.step === 'import') drop.classList.add('over'); }));

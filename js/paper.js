@@ -292,7 +292,7 @@
       case 'section': return '<h2 class="pp-section">' + esc(b.text) + (b.sub ? ' <small>' + esc(b.sub) + '</small>' : '') + '</h2>';
       case 'end': return '<div class="pp-end">' + b.html + '</div>';
       case 'q': {
-        const tools = opts && opts.tools ? '<span class="pp-tools" data-item="' + esc(b.itemId) + '"><button type="button" data-act="edit">Edit</button><button type="button" data-act="swap">Swap</button></span>' : '';
+        const tools = opts && opts.tools ? '<span class="pp-tools" data-item="' + esc(b.itemId) + '"><button type="button" data-act="edit" aria-label="Edit question ' + b.n + '">Edit</button><button type="button" data-act="swap" aria-label="Swap question ' + b.n + '">Swap</button></span>' : '';
         return '<section class="pp-q" data-item="' + esc(b.itemId) + '">' + tools + '<div class="pp-stem' + picFirst(b.stem) + '"><span class="pp-n">' + b.n + '.</span><div class="pp-stem-text">' + b.stem +
           '</div>' + (b.pts ? '<span class="pp-pts">(' + esc(b.pts) + ')</span>' : '') + '</div>' + b.parts.map(partHtml).join('') + '</section>';
       }

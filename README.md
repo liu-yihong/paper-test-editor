@@ -52,6 +52,24 @@ Questions, forms and usage history stay in your browser. The page never sends th
 
 Save the project file after a make-up if you want to reprint the same forms later or keep the usage history on another computer.
 
+## Accessibility
+
+The editor aims for **WCAG 2.1 Level AA**, the standard the ADA Title II rule uses for public colleges and universities. It was checked against WCAG 2.2 AA as well. An audit in November 2026 (axe-core in every step, dialog and style, plus keyboard, zoom and reflow tests) led to these changes:
+
+- **Keyboard**: everything works without a mouse.
+  - Tab reaches the bank import box; press Enter or Space to choose files.
+  - On the review page, Tab reaches each question's *Edit* and *Swap* buttons, which screen readers announce as "Edit question 3" and "Swap question 3".
+- **Dialogs**: a screen reader announces each dialog's title.
+  - Focus moves into the dialog and stays there while it is open; the page behind can't be reached.
+  - On closing, focus returns to the button that opened it.
+- **Steps**: *Next* and *Back* move focus to the new step's heading, so screen readers announce the step.
+- **Contrast**: text meets 4.5:1 in every style, in Day and Night.
+- **Device settings**: the page follows the system's contrast settings.
+  - *Increase contrast* (macOS, iOS and some Windows and Android settings) makes secondary text and borders full strength and focus rings thicker.
+  - Windows high-contrast mode keeps the current step, form and document outlined, and dialogs bordered.
+
+Still to do: announcing status messages to screen readers, the top bar at very narrow widths (320 px), stronger input borders, marking the selected document and form for screen readers, and heading styles in the Word export. A test with a real screen reader is also planned. Report accessibility problems through GitHub issues.
+
 ## Known limits
 
 - PDF page footers ("Page X of Y" and the form code) need Chrome or Edge, because they use CSS page margin boxes.
@@ -66,7 +84,7 @@ favicon.svg         logo and browser-tab icon (Noto Emoji writing hand), with PN
 favicon-32.png
 apple-touch-icon.png
 og-image.png        link-preview image (Open Graph / X card), 2400 × 1260
-css/app.css         all styling: the nine styles and the printed page
+css/app.css         all styling: the nine styles, contrast settings and the printed page
 tools/og-image/     the HTML the preview image is drawn from
 js/theme.js         applies the saved style and Day/Night choice before the page paints
 js/model.js         question types, pools and the exam blueprint
