@@ -31,13 +31,24 @@
   const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return iso; } };
   const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'exam';
 
+  // Screen readers hear messages through one live region that is always in the page, outside the
+  // part that goes inert behind dialogs. It is emptied first so the same message twice is read twice.
+  let announceTimer = null;
+  function announce(msg) {
+    const live = $('#sr-status');
+    live.textContent = '';
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => { live.textContent = msg; }, 80);
+  }
   let toastTimer = null;
   function toast(msg, ms) {
     const t = $('#toast');
     t.textContent = msg;
     t.hidden = false;
+    announce(msg);
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, ms || 3200);
+    // long enough to read: at least 4 s, more for longer messages
+    toastTimer = setTimeout(() => { t.hidden = true; }, ms || Math.max(4000, 1500 + msg.length * 50));
   }
 
   // a status sign from icons/status (ok, warn, err, info); decorative, the text says the same
@@ -594,6 +605,7 @@
     ui.form = 0;
     save();
     $('#gen-status').textContent = 'Generated ' + plural(res.forms.length, 'form') + ' from seed “' + g.seed + '”.';
+    announce($('#gen-status').textContent);
     renderGenResult();
     renderStepper();
   }
@@ -663,7 +675,7 @@
     const has = project.forms.length > 0;
     $('#review-empty').hidden = has;
     $('#paper-stage').hidden = !has;
-    $('#form-tabs').replaceChildren(...project.forms.map((f, i) => h('button', { type: 'button', class: i === ui.form ? 'active' : '', title: 'Form ' + f.code, onclick: () => { ui.form = i; renderReview(); } }, f.code)));
+    $('#form-tabs').replaceChildren(...project.forms.map((f, i) => h('button', { type: 'button', class: i === ui.form ? 'active' : '', 'aria-pressed': String(i === ui.form), 'aria-label': 'Form ' + f.code, title: 'Form ' + f.code, onclick: () => { ui.form = i; renderReview(); } }, f.code)));
     const s = project.settings;
     $$('input[name=answerMode]').forEach(r => { r.checked = r.value === s.answerMode; r.onchange = () => { s.answerMode = r.value; if (s.answerMode === 'booklet' && ui.doc === 'sheet') ui.doc = 'booklet'; save(); renderReview(); }; });
     $$('input[name=sheetStyle]').forEach(r => { r.checked = r.value === s.sheetStyle; r.onchange = () => { s.sheetStyle = r.value; save(); renderReview(); }; });
@@ -673,6 +685,7 @@
     $$('#doc-tabs button').forEach(b => {
       b.hidden = b.dataset.doc === 'sheet' && s.answerMode !== 'sheet';
       b.classList.toggle('active', b.dataset.doc === ui.doc);
+      b.setAttribute('aria-pressed', String(b.dataset.doc === ui.doc));
       b.onclick = () => { ui.doc = b.dataset.doc; renderReview(); };
     });
     if (!has) { $('#overlap-mini').replaceChildren(); return; }
@@ -720,7 +733,9 @@
     const poolQ = onForm && pool ? pool.questions.find(q => q.key === ctx.item.key) : null;
     const alsoPool = h('input', { type: 'checkbox' });
     const preview = h('div', { class: 'preview' });
-    const errBox = h('div');
+    // problems found while editing: read out politely when the list changes, not on every keystroke
+    const errBox = h('div', { 'aria-live': 'polite' });
+    let errSig = '';
     const fields = h('div');
 
     const ta = (value, rows, oninput, cls) => { const t = h('textarea', { rows: rows || 2, class: cls || '' }); t.value = value || ''; t.oninput = () => { oninput(t.value); refresh(); }; return t; };
@@ -743,7 +758,12 @@
       const b = PT.paper.questionBlock(fakeItem, onForm ? ctx.form.items.indexOf(ctx.item) + 1 : 1, project, screenCtx());
       preview.innerHTML = PT.paper.toHtml({ kind: 'booklet', blocks: [b], settings: Object.assign({}, project.settings, { largePrint: false }) });
       const v = BQ.validate(draft, { images: project.images });
-      errBox.replaceChildren(...v.errors.map(e => h('div', { class: 'notice bad', text: e })), ...v.warnings.map(e => h('div', { class: 'notice warn', text: e })));
+      const sig = JSON.stringify([v.errors, v.warnings]);
+      if (sig !== errSig) {
+        errSig = sig;
+        errBox.replaceChildren(...v.errors.map(e => h('div', { class: 'notice bad' }, h('span', { class: 'sr-only' }, 'Problem: '), e)),
+          ...v.warnings.map(e => h('div', { class: 'notice warn' }, h('span', { class: 'sr-only' }, 'Warning: '), e)));
+      }
     }
 
     /* layout helpers: a titled section, a list row, an "add" row, a remove button */

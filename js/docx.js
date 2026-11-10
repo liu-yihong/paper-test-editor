@@ -272,6 +272,7 @@
     return out.map(b => (b.xml ? { xml: b.xml } : { xml: null, runs: b.runs, p: b.p }));
   };
 
+  const cellsOf = (r) => Array.from(r.childNodes).filter(c => isEl(c) && /^t[dh]$/.test(lname(c)));
   Writer.prototype.htmlTable = function (tbl, st) {
     const rows = Array.from(tbl.getElementsByTagName('tr'));
     const ncols = Math.max(1, ...rows.map(r => Array.from(r.childNodes).filter(c => isEl(c) && /^t[dh]$/.test(lname(c))).reduce((a, c) => a + (parseInt(c.getAttribute('colspan'), 10) || 1), 0)));
@@ -282,7 +283,8 @@
     return '<w:tbl><w:tblPr>' + (jc ? '<w:jc w:val="' + jc + '"/>' : '') + '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(s => '<w:' + s + ' w:val="single" w:sz="4" w:space="0" w:color="808080"/>').join('') +
       '</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>' +
       Array.from({ length: ncols }, () => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>' +
-      rows.map(r => '<w:tr><w:trPr><w:cantSplit/></w:trPr>' + Array.from(r.childNodes).filter(c => isEl(c) && /^t[dh]$/.test(lname(c))).map(c => {
+      // a first row of heading cells repeats on each page and is read as column headings
+      rows.map((r, ri) => '<w:tr><w:trPr><w:cantSplit/>' + (ri === 0 && cellsOf(r).length && cellsOf(r).every(c => lname(c) === 'th') ? '<w:tblHeader/>' : '') + '</w:trPr>' + Array.from(r.childNodes).filter(c => isEl(c) && /^t[dh]$/.test(lname(c))).map(c => {
         const span = parseInt(c.getAttribute('colspan'), 10) || 1;
         // text alignment in the cell (from the markup's |:---:|---:| rule row)
         const ta = /text-align:\s*(center|right)/i.exec(c.getAttribute('style') || '');
@@ -342,14 +344,14 @@
           };
           if (cover) {
             if (b.course) out.push(para(run(b.course.toUpperCase(), { b: true, sz: hs(13), color: '333333' }), { align: 'center', after: 60 }));
-            out.push(para(run(b.title, { b: true, sz: hs(29) }), { align: 'center', after: 60, line: 240, lineRule: 'auto' }));
+            out.push(para(run(b.title, { b: true, sz: hs(29) }), { style: 'Heading1', align: 'center', after: 60, line: 240, lineRule: 'auto' }));
             if (b.doc) out.push(para(run(b.doc, { sz: hs(14.5), color: '333333' }), { align: 'center', after: 240 }));
             out.push(layoutTable([2200], [[{ xml: codeXml, tcPr: boxBorder(24) }]], { center: true }));
             out.push(para('', { after: 160 }));
             out.push(infoTable(Math.min(W, 7800), 15.5));
           } else {
             const left = (b.course ? para(run(b.course, { b: true, sz: hs(11), color: '333333' }), { after: 0 }) : '') +
-              para(run(b.title, { b: true, sz: hs(22) }), { after: 20 }) +
+              para(run(b.title, { b: true, sz: hs(22) }), { style: 'Heading1', after: 20 }) +
               (b.doc ? para(run(b.doc, { b: true, sz: hs(13) }), { after: 0 }) : '');
             out.push(layoutTable([W - 1700, 1700], [[{ xml: left, tcPr: '<w:vAlign w:val="bottom"/>' }, { xml: codeXml, tcPr: boxBorder(20) }]]));
             out.push(para('', { after: 0, line: 100, lineRule: 'exact', border: '<w:bottom w:val="single" w:sz="16" w:space="0" w:color="000000"/>' }));
@@ -405,7 +407,7 @@
           const k = base / 22;
           const sz = Math.round((b.cover ? 13 : 11.5) * 2 * k);
           const pp = { after: 60, line: b.cover ? 324 : 300, lineRule: 'auto', keepNext: true };
-          const inner = para(run('Instructions', { b: true, sz }), Object.assign({}, pp, { after: 40 })) + self.blocksXml(self.rich(b.html, { p: pp, st: { sz } }));
+          const inner = para(run('Instructions', { b: true, sz }), Object.assign({}, pp, { style: 'Heading2', after: 40 })) + self.blocksXml(self.rich(b.html, { p: pp, st: { sz } }));
           const tcPr = '<w:tcBorders><w:left w:val="single" w:sz="24" w:space="0" w:color="555555"/></w:tcBorders><w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/><w:tcMar><w:top w:w="100" w:type="dxa"/><w:left w:w="220" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:right w:w="220" w:type="dxa"/></w:tcMar>';
           out.push(layoutTable([W], [[{ xml: inner, tcPr }]]));
           out.push(para('', { after: b.cover ? 160 : 120 }));
@@ -425,7 +427,7 @@
         case 'pagebreak': out.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>'); break;
         case 'section':
           out.push(para(run(b.text, { b: true, sz: base + 4 }) + (b.sub ? run('   ' + b.sub, { sz: small, color: '555555' }) : ''),
-            { before: 240, after: 120, keepNext: true, border: '<w:bottom w:val="single" w:sz="6" w:space="2" w:color="000000"/>' }));
+            { style: 'Heading2', before: 240, after: 120, keepNext: true, border: '<w:bottom w:val="single" w:sz="6" w:space="2" w:color="000000"/>' }));
           break;
         case 'end':
           out.push(para('', { before: 360, after: 120, border: '<w:bottom w:val="single" w:sz="4" w:space="1" w:color="999999"/>' }));
@@ -546,6 +548,11 @@
       '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault>' +
       '<w:pPrDefault><w:pPr><w:spacing w:after="60" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>' +
       '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
+      // Real headings, so Word's navigation pane, screen readers and the Accessibility Checker see the
+      // structure: exam title = Heading 1, Instructions and each part = Heading 2. Their look comes from the
+      // paragraph and run formatting, as before; the styles only add the outline level.
+      '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/><w:pPr><w:keepNext/><w:outlineLvl w:val="0"/></w:pPr></w:style>' +
+      '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/><w:pPr><w:keepNext/><w:outlineLvl w:val="1"/></w:pPr></w:style>' +
       '<w:style w:type="paragraph" w:styleId="Footer"><w:name w:val="footer"/><w:basedOn w:val="Normal"/><w:rPr><w:sz w:val="17"/><w:color w:val="555555"/></w:rPr></w:style>' +
       '<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>' +
       '</w:styles>';

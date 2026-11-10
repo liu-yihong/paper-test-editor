@@ -63,12 +63,16 @@ The editor aims for **WCAG 2.1 Level AA**, the standard the ADA Title II rule us
   - Focus moves into the dialog and stays there while it is open; the page behind can't be reached.
   - On closing, focus returns to the button that opened it.
 - **Steps**: *Next* and *Back* move focus to the new step's heading, so screen readers announce the step.
-- **Contrast**: text meets 4.5:1 in every style, in Day and Night.
+- **Status messages**: screen readers read out messages such as "Imported 6 pools" and "Generated 2 forms", and the question editor's problems and warnings as they appear. On-screen messages now stay for at least 4 seconds, longer for long ones.
+- **Selected items**: screen readers say which form (A, B…) and which document (*Test booklet*, *Answer sheet*, *Answer key*) is selected.
+- **Contrast**: text meets 4.5:1 in every style, in Day and Night. Text boxes and menus have outlines of at least 3:1.
+- **Narrow screens and zoom**: the page works at 320 px wide (400% zoom) without scrolling sideways.
 - **Device settings**: the page follows the system's contrast settings.
   - *Increase contrast* (macOS, iOS and some Windows and Android settings) makes secondary text and borders full strength and focus rings thicker.
   - Windows high-contrast mode keeps the current step, form and document outlined, and dialogs bordered.
+- **Word files**: the exam title is *Heading 1*, and *Instructions* and each part are *Heading 2*. Word's navigation pane and screen readers can then move by heading, and Word's Accessibility Checker no longer reports missing headings. The page looks the same. Heading rows of tables repeat on each page and are read as column headings. Pictures carry their descriptions as alt text.
 
-Still to do: announcing status messages to screen readers, the top bar at very narrow widths (320 px), stronger input borders, marking the selected document and form for screen readers, and heading styles in the Word export. A test with a real screen reader is also planned. Report accessibility problems through GitHub issues.
+Still to do: a test with a real screen reader (NVDA, JAWS, VoiceOver), and some polish (a skip link, larger reorder buttons in the Windows 98 style, labels for empty table headings). Report accessibility problems through GitHub issues.
 
 ## Known limits
 
@@ -94,7 +98,7 @@ js/forms.js         seeded form generation, overlap and usage tracking
 js/richtext.js      formatting and math markup (shared with the Question Editor)
 js/wysiwyg.js       the visual fields: toolbar, math, pictures and tables
 js/paper.js         booklet, answer sheet and key for print and PDF
-js/docx.js          Word (.docx) export, with math as native Word equations
+js/docx.js          Word (.docx) export, with math as native Word equations and real headings
 js/samples.js       the six sample banks and sample exam (loaded on demand)
 js/app.js           the editor interface
 vendor/             KaTeX (math), served locally
