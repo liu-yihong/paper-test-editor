@@ -83,6 +83,13 @@ Checker results for this version:
 - HTML_CodeSniffer (pa11y) reports no errors.
 - axe reports no WCAG failures in any step, dialog or style.
 
+To suit simpler automated checkers, such as Skynet's free checker:
+- The page heading holds its text directly.
+- The Style and Paper menus have explicit labels.
+- The ruled lines in the drop box are drawn on their own layer, so a checker can read the plain background behind the text.
+
+The editor targets AA, the level the ADA requires. Checkers that also test the optional AAA level (7:1 contrast) will list the softer grey text and links, which are 4.7–6.7:1.
+
 Two kinds of warnings remain by design:
 - Formatting buttons shown as symbols (x², √x) are named in words ("Superscript"). W3C's guidance exempts symbols from the rule that a name must match its visible text.
 - HTML_CodeSniffer adds advisory notes it asks people to check by hand.
