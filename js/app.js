@@ -186,6 +186,8 @@
   /* ---------- steps ---------- */
   // The step's heading takes focus after Next or Back, so screen readers announce the new step
   // and Tab carries on from the top of it.
+  // smooth scrolling, unless the system asks for reduced motion
+  const scrollBehavior = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
   function stepHeading(step) {
     const hd = $('.step[data-panel="' + step + '"] h2');
     if (hd) hd.tabIndex = -1;
@@ -198,7 +200,7 @@
     ({ import: renderImport, blueprint: renderBlueprint, generate: renderGenerate, review: renderReview, export: renderExport })[ui.step]();
     // Not on the first render: the page is already at the top, and scrolling right after the DOM
     // changes forces an extra layout while the page is loading.
-    if (!(opts && opts.initial)) window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!(opts && opts.initial)) window.scrollTo({ top: 0, behavior: scrollBehavior() });
     if (opts && opts.focus) { const hd = stepHeading(ui.step); if (hd) hd.focus({ preventScroll: true }); }
   }
   function renderStepper() {
@@ -213,8 +215,13 @@
       b.classList.toggle('active', b.dataset.step === ui.step);
       b.classList.toggle('done', !!done[b.dataset.step] && b.dataset.step !== ui.step);
       const isDone = b.classList.contains('done'), isActive = b.classList.contains('active');
-      const label = b.textContent.replace(/^\d+/, '').trim(), n = b.querySelector('span').textContent;
-      b.setAttribute('aria-label', `Step ${n}: ${label}${isDone ? ' (done)' : ''}`);
+      // The name is the visible text ("1 Import banks"), so voice control users can say what they see;
+      // "(done)" is added as hidden text for screen readers.
+      const label = b.dataset.label || (b.dataset.label = b.textContent.replace(/^\s*\d+/, '').trim());
+      let sr = b.querySelector('small.sr-only');
+      if (!sr) { sr = h('small', { class: 'sr-only' }); b.append(sr); }
+      sr.textContent = isDone ? ' (done)' : '';
+      b.removeAttribute('aria-label');
       b.title = `${label}${isDone ? ' — done' : isActive ? ' — current step' : ''}`;
       if (isActive) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
     });
@@ -452,7 +459,7 @@
   function renderBlueprint() {
     bindExam();
     const t = $('#slots');
-    const head = h('thead', null, h('tr', null, ['Order', 'Pool', 'Section / outcome label', 'Draw', 'Points each', 'Subtotal', ''].map(x => h('th', null, x))));
+    const head = h('thead', null, h('tr', null, ['Order', 'Pool', 'Section / outcome label', 'Draw', 'Points each', 'Subtotal', ''].map(x => h('th', null, x || h('span', { class: 'sr-only' }, 'Actions')))));
     const body = h('tbody');
     const secs = blueprintSections();
     const browse = [];
@@ -630,7 +637,7 @@
   function overlapTable(forms) {
     const m = PT.forms.overlapMatrix(forms);
     return h('table', { class: 'overlap' },
-      h('thead', null, h('tr', null, h('th', { text: '' }), forms.map(f => h('th', { text: f.code })))),
+      h('thead', null, h('tr', null, h('th', null, h('span', { class: 'sr-only' }, 'Form')), forms.map(f => h('th', { text: f.code })))),
       h('tbody', null, forms.map((f, i) => h('tr', null, h('th', { text: f.code }), forms.map((g, j) => {
         const v = m[i][j];
         return h('td', { class: i === j ? 'self' : v ? 'some' : 'zero', title: i === j ? 'Questions on form ' + f.code : 'Questions shared by ' + f.code + ' and ' + g.code, text: String(v) });
@@ -962,9 +969,9 @@
           const it = PT.forms.swapItem({ pools: drawablePools(), settings: project.settings }, form, item.id, c.q.key);
           save(); closeModal(); renderReview();
           const el = it && $('.pp-q[data-item="' + it.id + '"]');
-          if (el) { el.classList.add('flash'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+          if (el) { el.classList.add('flash'); el.scrollIntoView({ block: 'center', behavior: scrollBehavior() }); }
           toast('Swapped. ' + (c.others.length ? 'This question is also on form ' + c.others.join(', ') + '.' : 'No other form has this question.'));
-        } }, 'Use this'));
+        }, 'aria-label': 'Use this: ' + BQ.rt.summary(c.q.text, 80) }, 'Use this'));
     }));
     const sec = PT.forms.sectionOfPool(project.pools, pool.id);
     const combined = sec && sec.pools.length > 1;

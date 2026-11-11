@@ -57,6 +57,7 @@ Save the project file after a make-up if you want to reprint the same forms late
 The editor aims for **WCAG 2.1 Level AA**, the standard the ADA Title II rule uses for public colleges and universities. It was checked against WCAG 2.2 AA as well. An audit in November 2026 (axe-core in every step, dialog and style, plus keyboard, zoom and reflow tests) led to these changes:
 
 - **Keyboard**: everything works without a mouse.
+  - The first Tab shows a *Skip to the current step* link.
   - Tab reaches the bank import box; press Enter or Space to choose files.
   - On the review page, Tab reaches each question's *Edit* and *Swap* buttons, which screen readers announce as "Edit question 3" and "Swap question 3".
 - **Dialogs**: a screen reader announces each dialog's title.
@@ -65,6 +66,11 @@ The editor aims for **WCAG 2.1 Level AA**, the standard the ADA Title II rule us
 - **Steps**: *Next* and *Back* move focus to the new step's heading, so screen readers announce the step.
 - **Status messages**: screen readers read out messages such as "Imported 6 pools" and "Generated 2 forms", and the question editor's problems and warnings as they appear. On-screen messages now stay for at least 4 seconds, longer for long ones.
 - **Selected items**: screen readers say which form (A, B…) and which document (*Test booklet*, *Answer sheet*, *Answer key*) is selected.
+- **Structure and names**: the app name is the page's main heading.
+  - Every group of options and every table heading has a name.
+  - The step buttons are named by their visible text ("1 Import banks"), so voice-control users can say what they see.
+- **Click targets**: small checkboxes and buttons have at least 24 px of room (WCAG 2.2).
+- **Motion**: scrolling is instant instead of smooth when the system asks for reduced motion.
 - **Contrast**: text meets 4.5:1 in every style, in Day and Night. Text boxes and menus have outlines of at least 3:1.
 - **Narrow screens and zoom**: the page works at 320 px wide (400% zoom) without scrolling sideways.
 - **Device settings**: the page follows the system's contrast settings.
@@ -72,7 +78,16 @@ The editor aims for **WCAG 2.1 Level AA**, the standard the ADA Title II rule us
   - Windows high-contrast mode keeps the current step, form and document outlined, and dialogs bordered.
 - **Word files**: the exam title is *Heading 1*, and *Instructions* and each part are *Heading 2*. Word's navigation pane and screen readers can then move by heading, and Word's Accessibility Checker no longer reports missing headings. The page looks the same. Heading rows of tables repeat on each page and are read as column headings. Pictures carry their descriptions as alt text.
 
-Still to do: a test with a real screen reader (NVDA, JAWS, VoiceOver), and some polish (a skip link, larger reorder buttons in the Windows 98 style, labels for empty table headings). Report accessibility problems through GitHub issues.
+Checker results for this version:
+- Google Lighthouse accessibility scores 100.
+- HTML_CodeSniffer (pa11y) reports no errors.
+- axe reports no WCAG failures in any step, dialog or style.
+
+Two kinds of warnings remain by design:
+- Formatting buttons shown as symbols (x², √x) are named in words ("Superscript"). W3C's guidance exempts symbols from the rule that a name must match its visible text.
+- HTML_CodeSniffer adds advisory notes it asks people to check by hand.
+
+Still to do: a test with a real screen reader (NVDA, JAWS, VoiceOver). Report accessibility problems through GitHub issues.
 
 ## Known limits
 

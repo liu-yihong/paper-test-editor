@@ -37,10 +37,11 @@
 </head>
 <body>
 <div id="app">
+  <a class="skip-link" href="#main">Skip to the current step</a>
   <header class="topbar">
     <div class="brand">
       <svg class="brand-mark" width="30" height="30" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2268.0 2268.0" fill="currentColor"><path d="M118 2184Q100 2184 105 2164L187 1839L1248 84L1458 209L837 1241L499 1491L451 1640L520 1768L400 1967L140 2173Q125 2184 118 2184ZM786 2002Q741 2002 680.5 1968Q620 1934 564.5 1881.5Q509 1829 477 1772L563 1722Q586 1762 629 1804Q672 1846 716 1874Q760 1902 786 1902Q809 1902 820 1884Q831 1866 831 1840Q831 1818 823.5 1794.5Q816 1771 801 1751L918 1762Q924 1780 927 1798.5Q930 1817 930 1836Q930 1902 893 1952Q856 2002 786 2002ZM1086 1932Q1046 1932 1000.5 1906.5Q955 1881 877 1814Q828 1772 803 1754Q778 1736 761 1730L797 1636Q826 1648 865 1674.5Q904 1701 951 1744Q1001 1789 1035 1810.5Q1069 1832 1086 1832Q1106 1832 1119 1808Q1132 1784 1132 1754Q1132 1750 1132 1747Q1132 1744 1131 1740L1229 1726Q1230 1733 1230.5 1740.5Q1231 1748 1231 1756Q1231 1826 1189.5 1879Q1148 1932 1086 1932ZM335 1718Q244 1718 193.5 1664.5Q143 1611 159 1531L252 1076Q264 1017 316.5 960.5Q369 904 434 879L940 680L980 782L474 981Q434 997 400 1032Q366 1067 360 1098L267 1553Q262 1580 279 1594Q296 1608 335 1608ZM1552 1978Q1475 1978 1407 1956.5Q1339 1935 1275.5 1890.5Q1212 1846 1147 1776Q1091 1715 1054 1690Q1017 1665 982 1665Q957 1665 926.5 1678Q896 1691 846 1723Q765 1775 704 1797.5Q643 1820 583 1820Q495 1820 440 1770Q385 1720 385 1640Q385 1596 431 1539.5Q477 1483 541 1430L779 1233Q822 1198 869.5 1183Q917 1168 980 1168H1249V1278H980Q934 1278 906 1287.5Q878 1297 849 1320L611 1513Q568 1548 531.5 1590.5Q495 1633 495 1640Q495 1673 517.5 1691.5Q540 1710 583 1710Q623 1710 664.5 1693.5Q706 1677 771 1636Q840 1592 889.5 1573.5Q939 1555 982 1555Q1044 1555 1096.5 1585Q1149 1615 1210 1683Q1299 1783 1377.5 1825.5Q1456 1868 1552 1868Q1607 1868 1664.5 1853.5Q1722 1839 1782 1839Q1830 1839 1875.5 1846Q1921 1853 1955 1853Q1993 1853 2023.5 1771.5Q2054 1690 2054 1566Q2054 1483 2039 1415Q2024 1347 2001.5 1307Q1979 1267 1955 1267H1862L1011 851L1059 753L1888 1157H1955Q2050 1157 2107 1272Q2164 1387 2164 1566Q2164 1742 2107.5 1852.5Q2051 1963 1955 1963Q1903 1963 1865.5 1956Q1828 1949 1782 1949Q1732 1949 1677.5 1963.5Q1623 1978 1552 1978Z"/></svg>
-      <div><b>Paper Test Editor</b><small id="project-name">Untitled exam</small></div>
+      <div><h1 class="brand-title"><b>Paper Test Editor</b></h1><small id="project-name">Untitled exam</small></div>
     </div>
     <nav class="top-actions" aria-label="Project">
       <button type="button" id="btn-new" title="Start an empty project. Pools, forms and the usage history in this browser are cleared, so save the current project first if you want to keep it.">New project</button>
@@ -48,7 +49,7 @@
       <button type="button" id="btn-save" title="Download this project (exam, pools, forms and usage history) as a .ptest.json file you can open later.">Save project</button>
       <span class="divider" aria-hidden="true"></span>
       <button type="button" id="btn-credits" title="Sources, tools and style inspirations behind this editor.">Credits</button>
-      <input type="file" id="file-project" accept=".json,.ptest.json" hidden>
+      <input type="file" id="file-project" accept=".json,.ptest.json" aria-label="Open project file" hidden>
     </nav>
     <div class="appearance">
       <label class="skin-pick" for="skin">Style
@@ -77,14 +78,14 @@
   </header>
 
   <ol class="stepper" id="stepper">
-    <li><button type="button" data-step="import" class="active" aria-current="step"><span>1</span>Import banks</button></li>
-    <li><button type="button" data-step="blueprint"><span>2</span>Blueprint</button></li>
-    <li><button type="button" data-step="generate"><span>3</span>Generate forms</button></li>
-    <li><button type="button" data-step="review"><span>4</span>Review &amp; edit</button></li>
-    <li><button type="button" data-step="export"><span>5</span>Export</button></li>
+    <li><button type="button" data-step="import" class="active" aria-current="step"><span>1</span> Import banks</button></li>
+    <li><button type="button" data-step="blueprint"><span>2</span> Blueprint</button></li>
+    <li><button type="button" data-step="generate"><span>3</span> Generate forms</button></li>
+    <li><button type="button" data-step="review"><span>4</span> Review &amp; edit</button></li>
+    <li><button type="button" data-step="export"><span>5</span> Export</button></li>
   </ol>
 
-  <main id="main">
+  <main id="main" tabindex="-1">
     <!-- 1. Import -->
     <section class="step active" data-panel="import">
       <div class="step-head">
@@ -142,6 +143,7 @@
           <label>Seed<span class="inline"><input id="gen-seed"><button type="button" id="btn-reseed" title="New random seed">↻</button></span></label>
         </div>
         <fieldset class="checks">
+          <legend class="sr-only">Order</legend>
           <label><input type="checkbox" id="set-shuffleQuestions"> Shuffle question order within each part</label>
           <label><input type="checkbox" id="set-mixSections"> Mix all parts together (no part headings)</label>
           <label><input type="checkbox" id="set-shuffleOptions"> Shuffle answer choices <small>(“All/None of the above” stay put; True/False is never reordered)</small></label>
@@ -207,6 +209,7 @@
       <div class="card batch">
         <h3>All forms at once</h3>
         <fieldset class="checks inline-checks">
+          <legend class="sr-only">Documents to include</legend>
           <label><input type="checkbox" id="batch-booklet" checked> Test booklets</label>
           <label><input type="checkbox" id="batch-sheet" checked> Answer sheets</label>
           <label><input type="checkbox" id="batch-key" checked> Answer keys</label>
@@ -243,7 +246,7 @@
 </div>
 
 <div id="print-root" aria-hidden="true"></div>
-<div id="modal" class="modal" hidden><section class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><h3 id="modal-title"></h3><button type="button" class="x" id="modal-x" aria-label="Close">×</button></header><div id="modal-body" class="modal-body"></div><footer id="modal-actions"></footer></section></div>
+<div id="modal" class="modal" hidden><section class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><h3 id="modal-title">Dialog</h3><button type="button" class="x" id="modal-x" aria-label="Close">×</button></header><div id="modal-body" class="modal-body"></div><footer id="modal-actions"></footer></section></div>
 <div id="toast" class="toast" aria-hidden="true" hidden></div>
 <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
 
