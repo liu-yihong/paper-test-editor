@@ -103,7 +103,7 @@ button.danger { color: var(--red); }
 button.small { padding: .2rem .55rem; font-size: .85rem; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 
-.stepper { list-style: none; display: flex; margin: 0; padding: .9rem 1.5rem 0; gap: .35rem; max-width: 1240px; margin-inline: auto; flex-wrap: wrap; }
+.stepper { list-style: none; display: flex; margin: 0; padding: .9rem 1.5rem 0; gap: .35rem; width: 100%; max-width: 1240px; margin-inline: auto; flex-wrap: wrap; } /* width: 100% because #app is a flex column (sticky footer): without it, auto margins would shrink the stepper to fit its content */
 .stepper li { flex: 1 1 0; min-width: 150px; }
 .stepper button { width: 100%; text-align: left; display: flex; align-items: center; gap: .55rem; border-radius: 999px; padding: .45rem .9rem .45rem .45rem; background: transparent; border-color: transparent; color: var(--ink-2); font-weight: 500; }
 .stepper button span { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 1.5px solid var(--muted); font-size: .85rem; font-weight: 700; flex: none; }

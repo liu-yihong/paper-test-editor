@@ -745,7 +745,7 @@
     let errSig = '';
     const fields = h('div');
 
-    const ta = (value, rows, oninput, cls) => { const t = h('textarea', { rows: rows || 2, class: cls || '' }); t.value = value || ''; t.oninput = () => { oninput(t.value); refresh(); }; return t; };
+    const ta = (value, rows, oninput, cls, label) => { const t = h('textarea', { rows: rows || 2, class: cls || '', 'aria-label': label || null }); t.value = value || ''; t.oninput = () => { oninput(t.value); refresh(); }; return t; };
     const inp = (value, oninput, attrs) => { const t = h('input', Object.assign({ type: 'text' }, attrs || {})); t.value = value == null ? '' : value; t.oninput = () => { oninput(t.value); refresh(); }; return t; };
     /** WYSIWYG field for formatted text (question, choices, matches, sample answer). */
     const rich = (value, oninput, o) => PT.wysiwyg(Object.assign({ value, images: () => project.images, notify: toast, onInput: (v) => { oninput(v); refresh(); } }, o || {})).el;
@@ -842,7 +842,7 @@
         parts.push(section('Extra matches', 'Optional · fit no prompt, so guessing is harder', extras));
       }
       if (draft.type === 'FIB') {
-        parts.push(section('Accepted answers', 'One per line', ta(draft.answers.join('\n'), 3, v => { draft.answers = v.split('\n').map(x => x.trim()).filter(Boolean); })));
+        parts.push(section('Accepted answers', 'One per line', ta(draft.answers.join('\n'), 3, v => { draft.answers = v.split('\n').map(x => x.trim()).filter(Boolean); }, '', 'Accepted answers, one per line')));
       }
       if (draft.type === 'FIB_PLUS') {
         BQ.syncBlanks(draft);
