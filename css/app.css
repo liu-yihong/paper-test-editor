@@ -116,7 +116,11 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .stepper button.active { background: var(--surface); border-color: var(--line); color: var(--ink); box-shadow: var(--shadow); }
 .stepper button.active span { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
 
-main { max-width: 1240px; margin: 0 auto; padding: 1rem 1.5rem 2rem; min-height: 100vh; min-height: 100svh; }
+/* Sticky footer: the whole page (top bar, steps, main, footer) is at least one screen tall, and main takes
+   the spare height. A short step keeps the footer at the bottom of the screen; a long one pushes it below.
+   The footer also never appears high and then jumps down while the page loads. */
+#app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; }
+main { max-width: 1240px; width: 100%; margin: 0 auto; padding: 1rem 1.5rem 2rem; flex: 1 0 auto; }
 /* min-height keeps the footer below the first screen while the step panels are filled in by script,
    so it doesn't jump down (layout shift) when they appear. */
 .step { display: none; }
